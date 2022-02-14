@@ -48,3 +48,5 @@ See [miap-controller.conf.example](miap-controller.conf.example) for an example 
 | `TIME_ENABLE` | `08:00` | Time when device should be activated |
 | `TIME_DISABLE` | `00:00` | Time when device should be disabled |
 | `TIME_SILENT` | `22:00` | Time when device should be put in silent mode |
+
+Any of `AQI_DISABLE_THRESHOLD`, `AQI_ENABLE_THRESHOLD`, `TIME_ENABLE`, `TIME_DISABLE`, `TIME_SILENT` can be set to `null` to disable related action.

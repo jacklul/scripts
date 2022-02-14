@@ -227,12 +227,14 @@ final class MIAPController
         // Load variables using dotenv
         $config = Dotenv::createArrayBacked($user_config ?? $script_path, $config_names)->load();
 
-        // Parse boolean values
+        // Parse boolean and null values
         foreach ($config as &$value) {
             if ($value === 'true') {
                 $value = true;
             } elseif ($value === 'false') {
                 $value = false;
+            } elseif ($value === 'null') {
+                $value = null;
             }
         }
         unset($value); 
@@ -253,7 +255,10 @@ final class MIAPController
 
         // Verify required numeric values
         foreach (['AQI_ENABLE_THRESHOLD', 'AQI_DISABLE_THRESHOLD', 'AQI_CHECK_PERIOD', 'CONNECT_RETRY'] as $key) {
-            if (!is_numeric($this->config[$key])) {
+            if (
+                !is_numeric($this->config[$key]) &&
+                (in_array($key, ['AQI_ENABLE_THRESHOLD', 'AQI_DISABLE_THRESHOLD']) && !is_null($this->config[$key]))
+            ) {
                 $this->printAndLog('Setting "' . $key . '" must be a number!', 'ERROR');
                 exit(1);
             }
@@ -261,15 +266,34 @@ final class MIAPController
 
         // Verify require time values
         foreach (['TIME_ENABLE', 'TIME_DISABLE', 'TIME_SILENT'] as $key) {
-            if (substr_count($this->config[$key], ':') !== 1) {
+            if ($this->config[$key] !== null && substr_count($this->config[$key], ':') !== 1) {
                 $this->printAndLog('Setting "' . $key . '" uses invalid time format!', 'ERROR');
                 exit(1);
             }
         }
 
         // Check if thresholds are correctly set
-        if ($this->config['AQI_ENABLE_THRESHOLD'] <= $this->config['AQI_DISABLE_THRESHOLD']) {
+        if (
+            $this->config['AQI_ENABLE_THRESHOLD'] !== null &&
+            $this->config['AQI_DISABLE_THRESHOLD'] !== null &&
+            $this->config['AQI_ENABLE_THRESHOLD'] <= $this->config['AQI_DISABLE_THRESHOLD']
+        ) {
             $this->printAndLog('Setting "AQI_ENABLE_THRESHOLD" must be bigger than "AQI_DISABLE_THRESHOLD"!', 'ERROR');
+            exit(1);
+        }
+
+        // Make sure the script will not be useless
+        $configOk = false;
+        foreach (['AQI_ENABLE_THRESHOLD', 'AQI_DISABLE_THRESHOLD', 'TIME_ENABLE', 'TIME_DISABLE', 'TIME_SILENT'] as $key) {
+            if ($this->config[$key] !== null) {
+                $configOk = true;
+                break;
+            }
+        }
+
+        if ($configOk == false) {
+            $this->printAndLog('All of the following setting variables are not set: ' . implode(', ', ['AQI_ENABLE_THRESHOLD', 'AQI_DISABLE_THRESHOLD', 'TIME_ENABLE', 'TIME_DISABLE', 'TIME_SILENT']), 'ERROR');
+            $this->printAndLog('Script will do nothing without a valid configuration.', 'ERROR');
             exit(1);
         }
 
@@ -280,9 +304,20 @@ final class MIAPController
 
             ob_start();
             var_dump($this->config);
-            $this->printAndLog('Configuration: ' . preg_replace('/=>\s+/', ' => ', ob_get_clean()) . PHP_EOL, 'DEBUG');
+            $this->printAndLog('Configuration: ' . preg_replace('/=>\s+/', ' => ', ob_get_clean()), 'DEBUG');
         }
 
+        // If user disabled these set those to 0 and -1 respectively
+        foreach (['AQI_ENABLE_THRESHOLD', 'AQI_DISABLE_THRESHOLD'] as $key) {
+            if (!is_numeric($this->config[$key])) {
+                if ($key === 'AQI_ENABLE_THRESHOLD') {
+                    $this->config[$key] = 0;
+                } else {
+                    $this->config[$key] = -1;
+                }
+            }
+        }
+        
         // Initialize AirPurifier object
         $this->device = MiIOFactory::airPurifier($this->config['DEVICE_IP'], $this->config['DEVICE_TOKEN']);
     }
@@ -292,8 +327,8 @@ final class MIAPController
      */
     public function run(): void
     {
-        !$this->config['CONSOLE_LOG_DATE'] && $this->printAndLog('Start time: ' . ((new DateTime('now'))->format('Y-m-d H:i:s')) . PHP_EOL);
-
+        !$this->config['CONSOLE_LOG_DATE'] && $this->printAndLog('Start time: ' . ((new DateTime('now'))->format('Y-m-d H:i:s')));
+        
         $this->connect();
 
         // Helper function to either grab mode from already fetched data or fetch it on demand
@@ -310,9 +345,24 @@ final class MIAPController
             $properties = null;
             
             $time = new DateTime('now');
-            $timeEnable = DateTime::createFromFormat('H:i', $this->config['TIME_ENABLE']);
-            $timeDisable = DateTime::createFromFormat('H:i', $this->config['TIME_DISABLE']);
-            $timeSilent = DateTime::createFromFormat('H:i', $this->config['TIME_SILENT']);
+
+            if ($this->config['TIME_ENABLE'] !== null) {
+                $timeEnable = DateTime::createFromFormat('H:i', $this->config['TIME_ENABLE']);
+            } else {
+                $timeEnable = (clone $time)->modify('-1 minute');
+            }
+
+            if ($this->config['TIME_DISABLE'] !== null) {
+                $timeDisable = DateTime::createFromFormat('H:i', $this->config['TIME_DISABLE']);
+            } else {
+                $timeDisable = (clone $time)->modify('+1 minute');
+            }
+            
+            if ($this->config['TIME_SILENT'] !== null) {
+                $timeSilent = DateTime::createFromFormat('H:i', $this->config['TIME_SILENT']);
+            } else {
+                $timeSilent = (clone $time)->modify('+1 minute');
+            }
 
             // Make sure we are in the correct time ranges
             if ($timeDisable < $timeEnable) {
@@ -322,8 +372,7 @@ final class MIAPController
             // We need future enable time later
             $timeEnableFuture = clone $timeEnable;
             if ($timeEnable < $timeDisable) {
-                $timeEnableFuture = clone $timeEnable;
-                $timeEnableFuture->modify('+1 day');
+                $timeEnableFuture = (clone $timeEnable)->modify('+1 day');
             }
 
             if ($lastAqiCheck + (int)$this->config['AQI_CHECK_PERIOD'] <= time()) {
@@ -333,10 +382,10 @@ final class MIAPController
                 $properties = $this->getProperties(['power', 'mode', 'aqi']);
 
                 if (!empty($properties)) {
-                    $this->printAndLog('AQI value is ' . $properties['aqi'] . PHP_EOL);
+                    $this->printAndLog('AQI value is ' . $properties['aqi']);
 
                     if ($properties['mode'] === 'favorites') {
-                        $this->config['DEBUG'] && $this->printAndLog('User override active (mode = favorite)' . PHP_EOL, 'DEBUG');
+                        $this->config['DEBUG'] && $this->printAndLog('User override active (mode = favorite)', 'DEBUG');
                         // User mode - do nothing
                         continue;
                     }
@@ -359,7 +408,7 @@ final class MIAPController
                         }
                     }
                 } else {
-                    $this->printAndLog('Failed to fetch properties from device' . PHP_EOL, 'WARNING');
+                    $this->printAndLog('Failed to fetch properties from device', 'WARNING');
                 }
             }
 
@@ -390,7 +439,7 @@ final class MIAPController
     {
         $status = false;
         while (!$status) {
-            $this->printAndLog('Connecting...' . PHP_EOL);
+            $this->printAndLog('Connecting...');
 
             $result = $this->queryDevice(MiIO::INFO);
 
@@ -399,12 +448,12 @@ final class MIAPController
 
                 if (isset($properties['model'])) {
                     if (strpos($properties['model'], '.airpurifier') === false) {
-                        $this->printAndLog('Unsupported device type - must be an Air Purifier!' . PHP_EOL, 'ERROR');
+                        $this->printAndLog('Unsupported device type - must be an Air Purifier!', 'ERROR');
 
                         exit(1);
                     }
 
-                    $this->printAndLog('Connected to ' . $properties['model'] . PHP_EOL);
+                    $this->printAndLog('Connected to ' . $properties['model'] . ' (FW: ' . $properties['fw_ver'] . ', miIO: ' . $properties['miio_ver'] . ')');
 
                     $this->model = $properties['model'];
                     $status = true;
@@ -413,7 +462,7 @@ final class MIAPController
             }
 
             if (!$status) {
-                $this->printAndLog('Will retry in ' . $this->config['CONNECT_RETRY'] . ' seconds...' . PHP_EOL);
+                $this->printAndLog('Will retry in ' . $this->config['CONNECT_RETRY'] . ' seconds...');
                 sleep($this->config['CONNECT_RETRY']);
             }
         }
@@ -427,7 +476,7 @@ final class MIAPController
     private function switchPower(bool $state): bool
     {
         $status = $this->setProperty('power', $state);
-        $status && $this->printAndLog('Power switched to ' . ($state ? 'on' : 'off') . PHP_EOL);
+        $status && $this->printAndLog('Power switched to ' . ($state ? 'on' : 'off'));
 
         return $status;
     }
@@ -440,7 +489,7 @@ final class MIAPController
     private function switchMode(string $mode): bool
     {
         $status = $this->setProperty('mode', $mode);
-        $status && $this->printAndLog('Mode switched to "' . $mode . '"' . PHP_EOL);
+        $status && $this->printAndLog('Mode switched to "' . $mode . '"');
 
         return $status;
     }
@@ -483,7 +532,7 @@ final class MIAPController
             return true;
         }
 
-        $this->config['DEBUG'] && $this->printAndLog('setProperties: ' . json_encode($propertyValues) . PHP_EOL, 'DEBUG');
+        $this->config['DEBUG'] && $this->printAndLog('setProperties: ' . json_encode($propertyValues), 'DEBUG');
 
         switch ($this->model) {
             case 'zhimi.airpurifier.mb4':
@@ -530,7 +579,7 @@ final class MIAPController
                 if ($result instanceof Response) {
                     $resultProperties = $result->getResult();
 
-                    $this->config['DEBUG'] && $this->printAndLog('setProperties result: ' . json_encode($resultProperties) . PHP_EOL, 'DEBUG');
+                    $this->config['DEBUG'] && $this->printAndLog('setProperties result: ' . json_encode($resultProperties), 'DEBUG');
 
                     $success = true;
                     foreach ($resultProperties as $resultProperty) {
@@ -541,7 +590,7 @@ final class MIAPController
                                 $value = $value ? 'true' : 'false';
                             }
 
-                            $this->printAndLog('Failed to set property "' . $propertyName . '" to "' . $value . '"!' . PHP_EOL, 'ERROR');
+                            $this->printAndLog('Failed to set property "' . $propertyName . '" to "' . $value . '"!', 'ERROR');
 
                             $success = false;
                         }
@@ -570,7 +619,7 @@ final class MIAPController
             $properties = array_keys($serviceMapping);
         }
 
-        $this->config['DEBUG'] && $this->printAndLog('getProperties: ' . json_encode($properties) . PHP_EOL, 'DEBUG');
+        $this->config['DEBUG'] && $this->printAndLog('getProperties: ' . json_encode($properties), 'DEBUG');
 
         switch ($this->model) {
             case 'zhimi.airpurifier.mb4':
@@ -598,7 +647,7 @@ final class MIAPController
                 if ($result instanceof Response) {
                     $resultProperties = $result->getResult();
 
-                    $this->config['DEBUG'] && $this->printAndLog('getProperties result: ' . json_encode($resultProperties) . PHP_EOL, 'DEBUG');
+                    $this->config['DEBUG'] && $this->printAndLog('getProperties result: ' . json_encode($resultProperties), 'DEBUG');
 
                     $return = [];
                     foreach ($resultProperties as $resultProperty) {
@@ -670,7 +719,7 @@ final class MIAPController
      */
     private function queryDevice(string $method, array $args = []): ?Response
     {
-        $this->config['DEBUG'] && $this->printAndLog('queryDevice: ' . $method . ' ' . json_encode($args) . PHP_EOL, 'DEBUG');
+        $this->config['DEBUG'] && $this->printAndLog('queryDevice: ' . $method . ' ' . json_encode($args), 'DEBUG');
 
         $result = null;
         try {
@@ -685,7 +734,7 @@ final class MIAPController
                     throw $e;
                 });
         } catch (Exception $e) {
-            $this->printAndLog($e->getMessage() . PHP_EOL, 'ERROR');
+            $this->printAndLog($e->getMessage(), 'ERROR');
         }
 
         return $result;
@@ -730,7 +779,7 @@ final class MIAPController
             $message = '[' . date('Y-m-d H:i:s') . '] ' . $message;
         }
 
-        print $message;
+        print trim($message) . PHP_EOL;
     }
 }
 
