@@ -1,0 +1,15 @@
+#!/bin/bash
+
+NAME="Telegram"
+
+function notify() {
+	if systemctl is-active --quiet updatenotifier.service ; then
+		/usr/local/bin/telegram-notify --quiet --warning --title "Update Notifier @ $(hostname -f)" --text "$1"
+
+		if [ $? != 0 ]; then
+			echo "There was a problem sending out the notification through Telegram"
+		fi
+	else
+		echo "Skipped because not running by service"
+	fi
+}

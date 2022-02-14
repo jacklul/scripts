@@ -1,0 +1,9 @@
+[Unit]
+Description=Run showRSS checker
+
+[Timer]
+OnCalendar=*:0/10
+RandomizedDelaySec=60s
+
+[Install]
+WantedBy=default.target

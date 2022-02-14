@@ -1,0 +1,31 @@
+#!/bin/bash
+
+NAME="APT packages"
+
+function apt_interrupt() {
+	if mountpoint -q /var/lib/apt ; then
+		umount /var/lib/apt > /dev/null 2>&1
+	fi
+}
+INTERRUPT_FUNCTIONS+=('apt_interrupt')
+
+function process() {
+	if [ ! -w /var/lib/apt ] && ! mountpoint -q /var/lib/apt ; then
+		mount tmpfs /var/lib/apt -t tmpfs > /dev/null 2>&1
+	fi
+
+	if [ -w /var/lib/apt ]; then
+		apt update -qq > /dev/null 2>&1
+	fi
+
+	UPDATES=$(apt list --upgradable 2> /dev/null | awk '{if(NR>1)print}' | awk -F '\[upgradable from' '{print $1}')
+
+	if mountpoint -q /var/lib/apt ; then
+		umount /var/lib/apt > /dev/null 2>&1
+	fi
+
+	if [ $? -eq 0 ] && [ "$UPDATES" != "" ]; then
+		echo "Found APT updates:"
+		echo -e "$UPDATES"
+	fi
+}

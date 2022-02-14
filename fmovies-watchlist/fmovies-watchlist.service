@@ -1,0 +1,8 @@
+[Unit]
+Description=FMovies watchlist notifier
+After=network-online.target multi-user.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=php %h/.local/bin/fmovies-watchlist

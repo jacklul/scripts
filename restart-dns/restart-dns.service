@@ -1,0 +1,10 @@
+[Unit]
+Description=Restart DNS services when pihole-FTL is restarted
+After=multi-user.target pihole-FTL.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/restart-dns
+
+[Install]
+WantedBy=multi-user.target

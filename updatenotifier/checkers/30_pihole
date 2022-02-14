@@ -1,0 +1,25 @@
+#!/bin/bash
+
+NAME="Pi-hole"
+
+function process() {
+	if ! command -v pihole >/dev/null 2>&1 ; then
+		return
+	fi
+
+	pihole updatechecker local >/dev/null 2>&1
+	pihole updatechecker remote >/dev/null 2>&1
+
+	LOCAL=$(pihole -v -c | awk '{print $5}' | sed 's/\.$//g')
+	LATEST=$(pihole -v -l | awk '{print $5}')
+
+	if echo $LATEST | grep -q "Invalid Option\|\-v" ; then
+		echo 'invalid output'
+		return
+	fi
+
+	if [ $? -eq 0 ] && [ "$LATEST" != "" ] && [ "$LOCAL" != "$LATEST" ]; then
+		echo "Found Pi-hole updates:"
+		echo -e "$LATEST"
+	fi
+}

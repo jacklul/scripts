@@ -1,0 +1,11 @@
+[Unit]
+Description=Mi Air Purifier Controller
+After=network-online.target multi-user.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=php /usr/local/bin/miap-controller /etc/miap-controller.conf
+
+[Install]
+WantedBy=multi-user.target

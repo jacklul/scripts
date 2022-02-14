@@ -1,0 +1,8 @@
+[Unit]
+Description=ShowRSS checker and notifier
+After=network-online.target multi-user.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/showRSS
