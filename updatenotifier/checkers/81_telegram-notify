@@ -12,12 +12,12 @@ function process() {
 		return
 	fi
 	
-	wget -q -O /tmp/telegram-notify https://raw.githubusercontent.com/NicolasBernaerts/debian-scripts/master/telegram/telegram-notify
+	#wget -q -O /tmp/telegram-notify "https://github.com/jacklul/scripts/blob/main/telegram-notify/telegram-notify?raw=true"
+	REMOTE=`wget -qO- https://github.com/jacklul/scripts/blob/main/telegram-notify/telegram-notify?raw=true`
 	
 	if [ $? -eq 0 ]; then
 		LOCAL=$(cat /usr/local/bin/telegram-notify | sed -n "/Revision history/,/# --/p" | head -n-1 | tail -n+2 | tail -1 | awk '{print $3}')
-		LATEST=$(cat /tmp/telegram-notify | sed -n "/Revision history/,/# --/p" | head -n-1 | tail -n+2 | tail -1 | awk '{print $3}')
-		rm /tmp/telegram-notify
+		LATEST=$(echo $REMOTE | sed -n "/Revision history/,/# --/p" | head -n-1 | tail -n+2 | tail -1 | awk '{print $3}')
 		
 		if [ "$LATEST" != "" ] && [ "$LOCAL" != "$LATEST" ]; then
 			echo "Found Telegram Notify update: $LATEST"
