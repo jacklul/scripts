@@ -1,0 +1,10 @@
+[Unit]
+Description=Run custom update notifier regularly
+
+[Timer]
+OnCalendar=*-*-* 06:00
+RandomizedDelaySec=60m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

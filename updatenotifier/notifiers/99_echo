@@ -1,0 +1,7 @@
+#!/bin/bash
+
+NAME=""
+
+function notify() {
+	echo -e "\n$1\n"
+}

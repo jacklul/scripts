@@ -1,0 +1,9 @@
+[Unit]
+Description=Run DST Reward Links notifier
+
+[Timer]
+OnCalendar=00/1:00
+RandomizedDelaySec=60s
+
+[Install]
+WantedBy=default.target

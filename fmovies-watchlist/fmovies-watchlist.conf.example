@@ -1,0 +1,18 @@
+; Notification command, "#TEXT#" will be replaced by the HTML output, maxlength settings limits string size splitting notification into multiple commands
+; telegram-notify from https://github.com/NicolasBernaerts/debian-scripts/tree/master/telegram
+[notification]
+command="/usr/local/bin/telegram-notify --quiet --html --disable_preview --icon 1F4FA --title \"Watchlist Update @ FMovies ($(hostname -f))\" --text \"#TEXT#\""
+maxlength=4000
+format="<a href=\"#URL#\">#TITLE#</a>"
+;failure_timeout=86400
+
+[fmovies]
+username=""
+password=""
+;data_file="fmovies_watchlist.json"
+;format_tv=#TITLE# S#SEASONP#E#EPISODEP# [#QUALITY#]
+;format_movie=#TITLE# [#QUALITY#]
+quality=HDRip
+
+[http]
+user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36"

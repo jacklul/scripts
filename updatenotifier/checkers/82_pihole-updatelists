@@ -1,0 +1,18 @@
+#!/bin/bash
+
+NAME="Pi-hole's Lists Updater"
+
+function process() {
+	if ! command -v pihole-updatelists >/dev/null 2>&1 ; then
+		return
+	fi
+
+	CHECK=$(pihole-updatelists --version 2> /dev/null)
+
+	if echo $CHECK | grep -q " is up to date\|Failed to check" ; then
+		return
+	fi
+
+	echo "Found Pi-hole's Lists Updater update:"
+    echo -e "$CHECK"
+}

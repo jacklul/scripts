@@ -1,0 +1,10 @@
+[Unit]
+Description=Scan for new devices in the network
+After=multi-user.target pihole-FTL.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/new-device-notify
+
+[Install]
+WantedBy=multi-user.target

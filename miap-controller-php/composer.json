@@ -1,0 +1,16 @@
+{
+    "name": "jacklul/miap-controller",
+    "bin": [
+        "src/app.php"
+    ],
+    "require": {
+        "vlucas/phpdotenv": "^5.4.1",
+        "ggottwald/miio": "^0.7.1"
+    },
+    "scripts": {
+        "build": [
+            "php -r \"file_exists(__DIR__ . '/miap-controller.phar') && unlink(__DIR__ . '/miap-controller.phar');\"",
+            "phar-composer build ."
+        ]
+    }
+}

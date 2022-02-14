@@ -1,0 +1,20 @@
+#!/bin/bash
+
+NAME="Rclone"
+
+function process() {
+	if ! command -v rclone >/dev/null 2>&1 ; then
+		return
+	fi
+	
+	VERSION_CHECK=$(rclone version --check 2> /dev/null)
+	
+	if [ $? -eq 0 ]; then
+		LOCAL=$(echo $VERSION_CHECK | grep 'yours' | sed -n 1p | awk '{print $2}')
+		LATEST=$(echo $VERSION_CHECK | grep 'latest' | sed -n 1p | awk '{print $4}')
+		
+		if [ "$LATEST" != "" ] && [ "$LOCAL" != "$LATEST" ]; then
+			echo "Found Rclone update: $LATEST"
+		fi
+	fi
+}

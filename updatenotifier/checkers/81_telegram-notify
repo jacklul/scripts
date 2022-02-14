@@ -1,0 +1,26 @@
+#!/bin/bash
+
+NAME="Telegram Notify"
+
+function tgnotify_interrupt() {
+	rm /tmp/telegram-notify > /dev/null 2>&1
+}
+INTERRUPT_FUNCTIONS+=('tgnotify_interrupt')
+
+function process() {
+	if [ ! -f "/usr/local/bin/telegram-notify" ]; then
+		return
+	fi
+	
+	wget -q -O /tmp/telegram-notify https://raw.githubusercontent.com/NicolasBernaerts/debian-scripts/master/telegram/telegram-notify
+	
+	if [ $? -eq 0 ]; then
+		LOCAL=$(cat /usr/local/bin/telegram-notify | sed -n "/Revision history/,/# --/p" | head -n-1 | tail -n+2 | tail -1 | awk '{print $3}')
+		LATEST=$(cat /tmp/telegram-notify | sed -n "/Revision history/,/# --/p" | head -n-1 | tail -n+2 | tail -1 | awk '{print $3}')
+		rm /tmp/telegram-notify
+		
+		if [ "$LATEST" != "" ] && [ "$LOCAL" != "$LATEST" ]; then
+			echo "Found Telegram Notify update: $LATEST"
+		fi
+	fi
+}
