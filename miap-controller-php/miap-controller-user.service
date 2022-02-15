@@ -8,4 +8,4 @@ Type=simple
 ExecStart=php %h/.local/bin/miap-controller %h/.config/miap-controller.conf
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
