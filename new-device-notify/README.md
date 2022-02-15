@@ -4,8 +4,8 @@
 
 Notifies when a new device is detected in the network.
 
-It uses [telegram-notify](/telegram-notify/) script to send the notifications to the configured Telegram chat.
-If you would like to use different delivery method then you will have to adjust top side of `new-device-notify.sh`.
+You will have to set notification function in `/etc/new-device-notify.conf`, placeholder `#DETAILS#` will be replaced with device info.
+By default only local network is scanned - to change that use config variable `SCAN_SUBNETS` which will be passed to `arp-scan` command.
 
 ## Requirements
 
