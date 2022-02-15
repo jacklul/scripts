@@ -18,9 +18,8 @@ if [ -f "$SPATH/fmovies-watchlist.php" ] && [ -f "$SPATH/fmovies-watchlist.servi
 
 	command -v dos2unix >/dev/null 2>&1 && dos2unix ~/.local/bin/fmovies-watchlist
 
-	echo -e "\nTo enable timer use these commands:"
-	echo "systemctl --user enable fmovies-watchlist.timer && systemctl --user start fmovies-watchlist.timer"
-	echo "You might also need to run loginctl enable-linger $USER to enable launch of services and timers when user is not logged in"
+	echo -e "\nTo enable and start the timer use this command: \"systemctl --user enable fmovies-watchlist.timer && systemctl --user start fmovies-watchlist.timer\""
+	echo "You might also need to run \"loginctl enable-linger $USER\" to enable the launch of timers for not logged in users"
 
 	systemctl daemon-reload --user
 else

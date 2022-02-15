@@ -10,8 +10,7 @@ if [ -f "$SPATH/miap-controller.phar" ] && [ -f "$SPATH/miap-controller-user.ser
 		
 		command -v dos2unix >/dev/null 2>&1 && dos2unix /usr/local/bin/miap-controller
 		
-		echo -e "\nTo enable service use this command:"
-		echo "systemctl enable miap-controller.service"
+		echo -e "\nTo enable the service use this command: \"sudo systemctl enable miap-controller.service\""
 
 		systemctl daemon-reload
 	else
@@ -23,9 +22,8 @@ if [ -f "$SPATH/miap-controller.phar" ] && [ -f "$SPATH/miap-controller-user.ser
 		
 		command -v dos2unix >/dev/null 2>&1 && dos2unix ~/.local/bin/miap-controller
 		
-		echo -e "\nTo enable service use this command:"
-		echo "systemctl --user enable miap-controller.service"
-		echo "You might also need to run loginctl enable-linger $USER to enable launch of services and timers when user is not logged in"
+		echo -e "\nTo enable the service use this command: \"systemctl --user enable miap-controller.service\""
+		echo "You might also need to run \"loginctl enable-linger $USER\" to enable the launch of services for not logged in users"
 
 		systemctl daemon-reload --user
 	fi
