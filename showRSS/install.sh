@@ -18,9 +18,8 @@ if [ -f "$SPATH/showRSS.php" ] && [ -f "$SPATH/showRSS.service" ] && [ -f "$SPAT
 	
 	command -v dos2unix >/dev/null 2>&1 && dos2unix ~/.local/bin/showRSS
 	
-	echo -e "\nTo enable timer use these commands:"
-	echo "systemctl --user enable showRSS.timer && systemctl --user start showRSS.timer"
-	echo "You might also need to run loginctl enable-linger $USER"
+	echo -e "\nTo enable and start the timer use this command: \"systemctl --user enable showRSS.timer && systemctl --user start showRSS.timer\""
+	echo "You might also need to run \"loginctl enable-linger $USER\" to enable the launch of timers for not logged in users"
 
 	systemctl daemon-reload --user
 else
