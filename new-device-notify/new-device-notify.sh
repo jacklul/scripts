@@ -8,7 +8,8 @@ PIHOLE_FTL_DB=/etc/pihole/pihole-FTL.db
 KNOWN_DEVICES_FILE=/var/lib/new-device-notify/known_devices
 LOG_FILE=/var/log/new-device-notify.log
 SCAN_SUBNETS=--localnet
-NOTIFICATION_COMMAND="echo -e \"New device detected: #MESSAGE#\""
+NOTIFICATION_COMMAND=
+RUN_AS_DAEMON=false
 LOCKFILE=/var/lock/$(basename $0)
 
 if [ -f "${CONFIG_FILE}" ]; then
@@ -31,9 +32,14 @@ trap onInterruptOrExit EXIT
 [ -f "$PIHOLE_FTL_DB" ] || echo "Pi-hole FTL database not found!";
 command -v arp-scan >/dev/null 2>&1 || echo "Command 'arp-scan' is missing!";
 
+if [ ! -d "$(dirname $KNOWN_DEVICES_FILE)" ]
+then
+    mkdir $(dirname $KNOWN_DEVICES_FILE)
+fi
+
 function echoLog() {
 	if [ "$LOG_FILE" != "" ]; then
-		echo [`date +"%Y-%m-%d %H:%M:%S %Z"`] $* >> "$LOG_FILE"
+		echo [`date +"%Y-%m-%d %H:%M:%S"`] $* >> "$LOG_FILE"
 	fi
 
 	echo $*
@@ -82,6 +88,7 @@ function getDevices() {
 	
 	if [ "$KNOWN_DEVICES_FILE" != "" ] && [ ! -f "$KNOWN_DEVICES_FILE" ]; then
 		echo -e "$DEVICES" > "$KNOWN_DEVICES_FILE"
+		echo "Saved initial devices list to '$KNOWN_DEVICES_FILE': $(echo $DEVICES)"
 	fi
 }
 
@@ -142,11 +149,17 @@ if [ "$KNOWN_DEVICES_FILE" != "" ]; then
 	mkdir -p "$(dirname "$KNOWN_DEVICES_FILE")"
 fi
 
-echoLog "Getting initial devices list..."
+if [ "$RUN_AS_DAEMON" == "true" ]; then
+	echoLog "Getting initial devices list..."
+fi
+
 getDevices init
 DEVICES_PREVIOUS=$DEVICES
 
-echoLog "Waiting for new devices..."
+if [ "$RUN_AS_DAEMON" == "true" ]; then
+	echoLog "Waiting for new devices..."
+fi
+
 while true ; do
 	getDevices
 
@@ -186,17 +199,19 @@ while true ; do
 
 				echoLog "New Device: NAME: $DEVICE_NAME | HWADDR: $DEVICE_HWADDR | IP: $DEVICE_IP | IF: $DEVICE_INTERFACE | MACVENDOR: $DEVICE_MACVENDOR | DATE: $DEVICE_DATE"
 
-				if [ "$j" != "0" ]; then
-					sleep 1
+				if [ "$NOTIFICATION_COMMAND" != "" ]; then
+					TEXT="Name:  $DEVICE_NAME\nMAC:  $DEVICE_HWADDR\nIP:  $DEVICE_IP\nInterface:  $DEVICE_INTERFACE\nMAC Vendor:  $DEVICE_MACVENDOR\nFirst Seen:  $DEVICE_DATE\n"
+					eval "${NOTIFICATION_COMMAND//#DETAILS#/$TEXT}"
 				fi
-
-				TEXT="Name:  $DEVICE_NAME\nMAC:  $DEVICE_HWADDR\nIP:  $DEVICE_IP\nInterface:  $DEVICE_INTERFACE\nMAC Vendor:  $DEVICE_MACVENDOR\nFirst Seen:  $DEVICE_DATE\n"
-				eval "${NOTIFICATION_COMMAND//#DETAILS#/$TEXT}"
 
 				j=$((j+1))
 			done
 		fi
 	fi
 
-	sleep 60
+	if [ "$RUN_AS_DAEMON" == "true" ]; then
+		sleep 60
+	else
+		break
+	fi
 done
