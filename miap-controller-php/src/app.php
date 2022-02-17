@@ -463,7 +463,7 @@ final class MIAPController
 
             if (!$status) {
                 $this->printAndLog('Will retry in ' . $this->config['CONNECT_RETRY'] . ' seconds...');
-                sleep($this->config['CONNECT_RETRY']);
+                sleep((int)$this->config['CONNECT_RETRY']);
             }
         }
     }
