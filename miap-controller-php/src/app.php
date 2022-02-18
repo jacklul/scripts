@@ -22,6 +22,7 @@ final class MIAPController
         'LOG_FILE'              => null,    // Path to log file
         'CONSOLE_LOG_DATE'      => false,   // Will output date in console log
         'CONNECT_RETRY'         => 60,      // Number of seconds to wait before retrying to connect to device
+        'POLLING_PERIOD'        => 5,       // Number of seconds to wait before executing next loop iteration
         'AQI_CHECK_PERIOD'      => 60,      // Number of seconds to wait before checking device status
         'AQI_DISABLE_THRESHOLD' => 5,       // AQI threshold to disable the device
         'AQI_ENABLE_THRESHOLD'  => 10,      // AQI threshold to enable the device
@@ -254,13 +255,16 @@ final class MIAPController
         }
 
         // Verify required numeric values
-        foreach (['AQI_ENABLE_THRESHOLD', 'AQI_DISABLE_THRESHOLD', 'AQI_CHECK_PERIOD', 'CONNECT_RETRY'] as $key) {
+        foreach (['AQI_ENABLE_THRESHOLD', 'AQI_DISABLE_THRESHOLD', 'AQI_CHECK_PERIOD', 'POLLING_PERIOD', 'CONNECT_RETRY'] as $key) {
             if (
                 !is_numeric($this->config[$key]) &&
                 (in_array($key, ['AQI_ENABLE_THRESHOLD', 'AQI_DISABLE_THRESHOLD']) && !is_null($this->config[$key]))
             ) {
                 $this->printAndLog('Setting "' . $key . '" must be a number!', 'ERROR');
                 exit(1);
+            } else {
+                // Cast the value to integer
+                $this->config[$key] = (int) $this->config[$key];
             }
         }
 
@@ -364,18 +368,25 @@ final class MIAPController
                 $timeSilent = (clone $time)->modify('+1 minute');
             }
 
-            // Make sure we are in the correct time ranges
-            if ($timeDisable < $timeEnable) {
+            //  Time corrections
+            if ($timeDisable < $timeEnable && $time > $timeEnable) {
                 $timeDisable->modify('+1 day');
-            }
-
-            // We need future enable time later
-            $timeEnableFuture = clone $timeEnable;
-            if ($timeEnable < $timeDisable) {
-                $timeEnableFuture = (clone $timeEnable)->modify('+1 day');
+            } elseif ($timeDisable > $timeEnable && $time < $timeEnable) {
+                $timeDisable->modify('-1 day');
             }
 
             if ($lastAqiCheck + (int)$this->config['AQI_CHECK_PERIOD'] <= time()) {
+                if ($this->config['DEBUG']) {
+                    ob_start();
+                    var_dump([
+                        'time' => $time->format('Y-m-d H:i:s'),
+                        'timeEnable' => $timeEnable->format('Y-m-d H:i:s'),
+                        'timeDisable' => $timeDisable->format('Y-m-d H:i:s'),
+                        'timeSilent' => $timeSilent->format('Y-m-d H:i:s'),
+                    ]);
+                    $this->printAndLog('Time variables: ' . preg_replace('/=>\s+/', ' => ', ob_get_clean()), 'DEBUG');
+                }
+
                 $lastAqiCheck = time();
 
                 // Fetch required properties from the device
@@ -391,6 +402,8 @@ final class MIAPController
                     }
     
                     if ($time > $timeEnable && $time < $timeDisable) {
+                        $this->config['DEBUG'] && $this->printAndLog('In enabled time period', 'DEBUG');
+
                         if ($properties['aqi'] >= $this->config['AQI_ENABLE_THRESHOLD']) {
                             if ($time < $timeSilent && $properties['mode'] !== 'auto') {
                                 $this->switchMode('auto');
@@ -413,6 +426,8 @@ final class MIAPController
             }
 
             if ($time > $timeEnable && $time < $timeDisable && $time > $timeSilent) {
+                $this->config['DEBUG'] && $this->printAndLog('In silent time period', 'DEBUG');
+
                 $mode = $getMode();
 
                 if ($mode !== null && $mode !== 'silent') {
@@ -420,15 +435,17 @@ final class MIAPController
                 }
             }
             
-            if ($time > $timeDisable && $time < $timeEnableFuture) {
-                $mode = $getMode();
+            if ($time > $timeDisable && $time < $timeEnable) {
+                $this->config['DEBUG'] && $this->printAndLog('In disabled time period', 'DEBUG');
 
+                $mode = $getMode();
+                
                 if ($mode !== null && $mode !== 'favorite') {
                     $this->switchPower(false);
                 }
             }
 
-            sleep(1);
+            sleep($this->config['POLLING_PERIOD']);
         }
     }
 
