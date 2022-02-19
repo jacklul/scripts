@@ -11,8 +11,6 @@ Only few models are supported:
 
 Uses [ggottwald/miio](https://github.com/ggottwald/miio).
 
-Compared to [miap-controller-node](/miap-controller-node/) this one seems more efficient, especially on Raspberry Pi 0.
-
 ## Requirements
 
 - systemd

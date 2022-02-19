@@ -6,8 +6,6 @@ Most models should be supported but might have issues with specific time values 
 
 Uses [aholstenson/miio](https://github.com/aholstenson/miio), support for 3C model added in [jacklul/miio#air-purifier-3c](https://github.com/jacklul/miio/tree/air-purifier-3c) fork.
 
-Compared to [miap-controller-php](/miap-controller-php/) this one seems less efficient, especially on Raspberry Pi 0.
-
 **Will no longer work on this script.**
 
 ## Requirements
@@ -17,10 +15,10 @@ Compared to [miap-controller-php](/miap-controller-php/) this one seems less eff
 
 ## Installation
 
-**This script installs into `/home/$USER/.local/bin/`.**
-
 - Copy this whole directory and transfer it to the device
-- Run `install.sh`
+- Run `npm install` or `yarn install` to install the dependencies
+- Run `npm build` or `yarn build` to build the script and dependencies into a single file
+- Run `install.sh` to install it to `/home/$USER/.local/bin/` directory
 - Copy `miap-controller.conf.example` to `/home/$USER/.config/miap-controller.conf` and modify it to your needs
 
 ## Configuration
