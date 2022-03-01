@@ -4,12 +4,43 @@
  */
 
 use Dotenv\Dotenv;
-use MiIO\Factory as MiIOFactory;
+use MiIO\Devices\AirPurifier;
 use MiIO\MiIO;
+use MiIO\Models\Device;
 use MiIO\Models\Response;
+use Socket\Raw\Factory as SocketFactory;
+use Socket\Raw\Socket;
 
 final class MIAPController
 {
+    /**
+     * Socket object handle
+     * 
+     * @var Socket
+     */
+    private $socket = null;
+
+    /**
+     * Device object handle
+     * 
+     * @var AirPurifier
+     */
+    private $device = null;
+
+    /**
+     * Current device model
+     * 
+     * @var string
+     */
+    private $model = null;
+
+    /**
+     * Are we connected to the device?
+     *
+     * @var bool
+     */
+    private $connected = false;
+
     /**
      * @var array
      */
@@ -192,20 +223,6 @@ final class MIAPController
     ];
 
     /**
-     * Current device model
-     * 
-     * @var string
-     */
-    private $model = null;
-
-    /**
-     * Object handle
-     * 
-     * @var AirPurifier
-     */
-    private $device = null;
-
-    /**
      * @param array $args
      */
     public function __construct(array $args)
@@ -238,7 +255,7 @@ final class MIAPController
                 $value = null;
             }
         }
-        unset($value); 
+        unset($value);
 
         // Merge-replace with default config
         $this->config = array_replace_recursive($this->config, $config);
@@ -321,9 +338,6 @@ final class MIAPController
                 }
             }
         }
-        
-        // Initialize AirPurifier object
-        $this->device = MiIOFactory::airPurifier($this->config['DEVICE_IP'], $this->config['DEVICE_TOKEN']);
     }
 
     /**
@@ -332,22 +346,14 @@ final class MIAPController
     public function run(): void
     {
         !$this->config['CONSOLE_LOG_DATE'] && $this->printAndLog('Start time: ' . ((new DateTime('now'))->format('Y-m-d H:i:s')));
-        
-        $this->connect();
 
-        // Helper function to either grab mode from already fetched data or fetch it on demand
-        $getMode = function() use (&$properties): ?string {
-            if (empty($properties)) {
-                $properties['mode'] = $this->getProperty('mode');
-            }
-
-            return $properties['mode'] ?? null;
-        };
-        
         $lastAqiCheck = 0;
         while (true) {
-            $properties = null;
-            
+            if ($this->device === null) {
+                $this->connect($this->model !== null);
+            }
+
+            $properties = [];
             $time = new DateTime('now');
 
             if ($this->config['TIME_ENABLE'] !== null) {
@@ -361,7 +367,7 @@ final class MIAPController
             } else {
                 $timeDisable = (clone $time)->modify('+1 minute');
             }
-            
+
             if ($this->config['TIME_SILENT'] !== null) {
                 $timeSilent = DateTime::createFromFormat('H:i', $this->config['TIME_SILENT']);
             } else {
@@ -389,10 +395,7 @@ final class MIAPController
 
                 $lastAqiCheck = time();
 
-                // Fetch required properties from the device
-                $properties = $this->getProperties(['power', 'mode', 'aqi']);
-
-                if (!empty($properties)) {
+                if (!empty($properties += $this->getProperties(['power', 'mode', 'aqi']))) {
                     $this->printAndLog('AQI value is ' . $properties['aqi']);
 
                     if ($properties['mode'] === 'favorites') {
@@ -400,7 +403,7 @@ final class MIAPController
                         // User mode - do nothing
                         continue;
                     }
-    
+
                     if ($time > $timeEnable && $time < $timeDisable) {
                         $this->config['DEBUG'] && $this->printAndLog('In enabled time period', 'DEBUG');
 
@@ -410,7 +413,7 @@ final class MIAPController
                             } elseif ($time > $timeSilent && $properties['mode'] !== 'silent') {
                                 $this->switchMode('silent');
                             }
-    
+
                             if ($properties['power'] === false) {
                                 $this->switchPower(true);
                             }
@@ -420,28 +423,32 @@ final class MIAPController
                             }
                         }
                     }
-                } else {
-                    $this->printAndLog('Failed to fetch properties from device', 'WARNING');
                 }
             }
 
             if ($time > $timeEnable && $time < $timeDisable && $time > $timeSilent) {
                 $this->config['DEBUG'] && $this->printAndLog('In silent time period', 'DEBUG');
 
-                $mode = $getMode();
-
-                if ($mode !== null && $mode !== 'silent') {
-                    $this->switchMode('silent');
+                if (
+                    (isset($properties['mode']) ||
+                        !empty($properties += ['mode' => $this->getProperty('mode')]))
+                ) {
+                    if ($properties['mode'] !== 'silent') {
+                        $this->switchMode('silent');
+                    }
                 }
             }
-            
+
             if ($time > $timeDisable && $time < $timeEnable) {
                 $this->config['DEBUG'] && $this->printAndLog('In disabled time period', 'DEBUG');
 
-                $mode = $getMode();
-                
-                if ($mode !== null && $mode !== 'favorite') {
-                    $this->switchPower(false);
+                if (
+                    (isset($properties['mode'], $properties['power'])) ||
+                    !empty($properties += $this->getProperties(['mode', 'power']))
+                ) {
+                    if ($properties['mode'] !== 'favorite' && $properties['power'] === true) {
+                        $this->switchPower(false);
+                    }
                 }
             }
 
@@ -452,11 +459,19 @@ final class MIAPController
     /**
      * @return void
      */
-    private function connect(): void
+    private function connect(bool $reconnect = false): void
     {
+        // Initialize AirPurifier object
+        $this->socket = (new SocketFactory())->createUdp4();
+        $this->device = new AirPurifier(new Device($this->socket, $this->config['DEVICE_IP'], $this->config['DEVICE_TOKEN']));
+
         $status = false;
         while (!$status) {
-            $this->printAndLog('Connecting...');
+            if ($reconnect) {
+                $this->printAndLog('Reconnecting...');
+            } else {
+                $this->printAndLog('Connecting...');
+            }
 
             $result = $this->queryDevice(MiIO::INFO);
 
@@ -472,7 +487,12 @@ final class MIAPController
 
                     $this->printAndLog('Connected to ' . $properties['model'] . ' (FW: ' . $properties['fw_ver'] . ', miIO: ' . $properties['miio_ver'] . ')');
 
+                    if ($reconnect && $properties['model'] !== $this->model) {
+                        $this->printAndLog('Device model changed from ' . $this->model . ' to ' . $properties['model'], 'WARNING');
+                    }
+
                     $this->model = $properties['model'];
+                    $this->connected = true;
                     $status = true;
                     break;
                 }
@@ -482,6 +502,19 @@ final class MIAPController
                 $this->printAndLog('Will retry in ' . $this->config['CONNECT_RETRY'] . ' seconds...');
                 sleep((int)$this->config['CONNECT_RETRY']);
             }
+        }
+    }
+
+    /**
+     * @return void
+     */
+    private function disconnect(): void
+    {
+        if ($this->device !== null) {
+            $this->connected = false;
+            $this->device = null;
+            $this->socket->close();
+            $this->socket = null;
         }
     }
 
@@ -512,14 +545,75 @@ final class MIAPController
     }
 
     /**
-     * @param string $property
-     * @param mixed $value
+     * @param array $properties
      *
-     * @return bool
+     * @return array|null
      */
-    private function setProperty(string $property, $value): bool
+    private function getProperties(array $properties = []): array
     {
-        return $this->setProperties([$property => $value]);
+        $serviceMapping = $this->getServiceMapping();
+
+        if (empty($properties)) {
+            $properties = array_keys($serviceMapping);
+        }
+
+        $this->config['DEBUG'] && $this->printAndLog('getProperties: ' . json_encode($properties), 'DEBUG');
+
+        $return = [];
+
+        switch ($this->model) {
+            case 'zhimi.airpurifier.mb4':
+            case 'zhimi.airpurifier.ma4':
+            case 'zhimi.airpurifier.mb3':
+            case 'zhimi.airpurifier.va1':
+            case 'zhimi.airpurifier.vb2':
+            case 'zhimi.airpurifier.mb4':
+            case 'zhimi.airp.mb4a':
+            case 'zhimi.airp.va2':
+                $propertiesProper = [];
+                foreach ($properties as $property) {
+                    if (!isset($serviceMapping[$property])) {
+                        throw new Exception('Unknown property "' . $property . '"');
+                    }
+
+                    $propertiesProper[] = [
+                        'siid' => $serviceMapping[$property]['siid'],
+                        'piid' => $serviceMapping[$property]['piid'],
+                    ];
+                }
+
+                $result = $this->queryDevice('get_properties', $propertiesProper);
+
+                if ($result instanceof Response) {
+                    $resultProperties = $result->getResult();
+
+                    $this->config['DEBUG'] && $this->printAndLog('getProperties result: ' . json_encode($resultProperties), 'DEBUG');
+
+                    foreach ($resultProperties as $resultProperty) {
+                        $propertyName = $this->getPropertyNameFromSiidAndPiid($resultProperty['siid'], $resultProperty['piid']);
+
+                        if (isset($serviceMapping[$propertyName]['values'])) {
+                            foreach ($serviceMapping[$propertyName]['values'] as $key => $keyValue) {
+                                if ($keyValue === $resultProperty['value']) {
+                                    $return[$propertyName] = $key;
+                                    continue 2;
+                                }
+                            }
+                        } else {
+                            $return[$propertyName] = $resultProperty['value'];
+                        }
+                    }
+                }
+                break;
+            default:
+                throw new Exception('Unsupported device model: "' . $this->model . '"');
+        }
+
+        if (empty($return)) {
+            $this->printAndLog('Failed to fetch properties from the device', 'WARNING');
+        }
+
+        return $return;
     }
 
     /**
@@ -540,7 +634,7 @@ final class MIAPController
     private function setProperties(array $propertyValues = []): bool
     {
         $serviceMapping = $this->getServiceMapping();
-        
+
         if (empty($propertyValues)) {
             throw new Exception('Properties must be set');
         }
@@ -558,8 +652,8 @@ final class MIAPController
             case 'zhimi.airpurifier.va1':
             case 'zhimi.airpurifier.vb2':
             case 'zhimi.airpurifier.mb4':
-            case 'zhimi.airp.mb4a':    
-            case 'zhimi.airp.va2':    
+            case 'zhimi.airp.mb4a':
+            case 'zhimi.airp.va2':
                 $propertiesProper = [];
                 foreach ($propertyValues as $property => $value) {
                     if (!isset($serviceMapping[$property])) {
@@ -620,76 +714,20 @@ final class MIAPController
                 throw new Exception('Unsupported device model: "' . $this->model . '"');
         }
 
+        $this->printAndLog('Failed to set properties on the device', 'WARNING');
+
         return false;
     }
 
     /**
-     * @param array $properties
+     * @param string $property
+     * @param mixed $value
      *
-     * @return array|null
+     * @return bool
      */
-    private function getProperties(array $properties = []): ?array
+    private function setProperty(string $property, $value): bool
     {
-        $serviceMapping = $this->getServiceMapping();
-        
-        if (empty($properties)) {
-            $properties = array_keys($serviceMapping);
-        }
-
-        $this->config['DEBUG'] && $this->printAndLog('getProperties: ' . json_encode($properties), 'DEBUG');
-
-        switch ($this->model) {
-            case 'zhimi.airpurifier.mb4':
-            case 'zhimi.airpurifier.ma4':
-            case 'zhimi.airpurifier.mb3':
-            case 'zhimi.airpurifier.va1':
-            case 'zhimi.airpurifier.vb2':
-            case 'zhimi.airpurifier.mb4':
-            case 'zhimi.airp.mb4a':    
-            case 'zhimi.airp.va2': 
-                $propertiesProper = [];
-                foreach ($properties as $property) {
-                    if (!isset($serviceMapping[$property])) {
-                        throw new Exception('Unknown property "' . $property . '"');
-                    }
-
-                    $propertiesProper[] = [
-                        'siid' => $serviceMapping[$property]['siid'],
-                        'piid' => $serviceMapping[$property]['piid'],
-                    ];
-                }
-
-                $result = $this->queryDevice('get_properties', $propertiesProper);
-
-                if ($result instanceof Response) {
-                    $resultProperties = $result->getResult();
-
-                    $this->config['DEBUG'] && $this->printAndLog('getProperties result: ' . json_encode($resultProperties), 'DEBUG');
-
-                    $return = [];
-                    foreach ($resultProperties as $resultProperty) {
-                        $propertyName = $this->getPropertyNameFromSiidAndPiid($resultProperty['siid'], $resultProperty['piid']);
-
-                        if (isset($serviceMapping[$propertyName]['values'])) {
-                            foreach ($serviceMapping[$propertyName]['values'] as $key => $keyValue) {
-                                if ($keyValue === $resultProperty['value']) {
-                                    $return[$propertyName] = $key;
-                                    continue 2;
-                                }
-                            }
-                        } else {
-                            $return[$propertyName] = $resultProperty['value'];
-                        }
-                    }
-
-                    return $return;
-                }
-                break;
-            default:
-                throw new Exception('Unsupported device model: "' . $this->model . '"');
-        }
-
-        return null;
+        return $this->setProperties([$property => $value]);
     }
 
     /**
@@ -718,7 +756,7 @@ final class MIAPController
     private function getPropertyNameFromSiidAndPiid(int $siid, int $piid): ?string
     {
         $serviceMapping = $this->getServiceMapping();
-        
+
         foreach ($serviceMapping as $propertyName => $propertyData) {
             if ($siid == $propertyData['siid'] && $piid == $propertyData['piid']) {
                 return $propertyName;
@@ -736,6 +774,10 @@ final class MIAPController
      */
     private function queryDevice(string $method, array $args = []): ?Response
     {
+        if ($this->device === null) {
+            return null;
+        }
+
         $this->config['DEBUG'] && $this->printAndLog('queryDevice: ' . $method . ' ' . json_encode($args), 'DEBUG');
 
         $result = null;
@@ -752,6 +794,8 @@ final class MIAPController
                 });
         } catch (Exception $e) {
             $this->printAndLog($e->getMessage(), 'ERROR');
+
+            $this->connected && $this->disconnect(); // Initiate reconnect
         }
 
         return $result;
