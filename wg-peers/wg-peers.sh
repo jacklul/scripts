@@ -49,7 +49,7 @@ function checkForRequiredFiles() {
 	fi
 	
 	if [ ! -f "$WGPATH/$1-peers.conf" ]; then
-		echo -e "# This file is managed by the script and should not be modified by hand!\n" > "$WGPATH/$1-peers.conf"
+		echo -e "# This file is managed by the script and should not be modified by hand\n" > "$WGPATH/$1-peers.conf"
 	fi
 }
 
@@ -279,7 +279,6 @@ PublicKey = $PUBLIC_KEY
 PresharedKey = $PSK_KEY
 AllowedIPs = $PEER_IP_ADDRESS/32
 # peer-$3 END
-
 EOT
 
 		if [ -f "$WGPATH/$2-hosts.list" ] && ! grep -q "$PEER_IP_ADDRESS" "$WGPATH/$2-hosts.list" ; then
