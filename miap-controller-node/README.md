@@ -17,7 +17,7 @@ Uses [aholstenson/miio](https://github.com/aholstenson/miio), support for 3C mod
 
 - Copy this whole directory and transfer it to the device
 - Run `npm install` or `yarn install` to install the dependencies
-- Run `npm build` or `yarn build` to build the script and dependencies into a single file
+- Run `npm run build` or `yarn run build` to build the script and dependencies into a single file
 - Run `install.sh` to install it to `/home/$USER/.local/bin/` directory
 - Copy `miap-controller.conf.example` to `/home/$USER/.config/miap-controller.conf` and modify it to your needs
 

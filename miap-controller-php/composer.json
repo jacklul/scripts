@@ -10,7 +10,8 @@
     "scripts": {
         "build": [
             "php -r \"file_exists(__DIR__ . '/miap-controller.phar') && unlink(__DIR__ . '/miap-controller.phar');\"",
-            "phar-composer build ."
+            "phar-composer build .",
+            "php -r \"$files = scandir('phar://miap-controller.phar'); foreach ($files as $file) { !is_dir($file) && @unlink('phar://miap-controller.phar/' . $file); }\""
         ]
     }
 }
