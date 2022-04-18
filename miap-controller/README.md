@@ -1,4 +1,4 @@
-# miap-controller-php
+# miap-controller
 
 Basic automation control for Xiaomi Air Purifiers.
 
