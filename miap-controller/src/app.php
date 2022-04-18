@@ -351,6 +351,8 @@ final class MIAPController
         while (true) {
             if ($this->device === null) {
                 $this->connect($this->model !== null);
+            } else {
+                sleep($this->config['POLLING_PERIOD']);
             }
 
             $properties = [];
@@ -398,7 +400,7 @@ final class MIAPController
                 if (!empty($properties += $this->getProperties(['power', 'mode', 'aqi']))) {
                     $this->printAndLog('AQI value is ' . $properties['aqi']);
 
-                    if ($properties['mode'] === 'favorites') {
+                    if ($properties['mode'] === 'favorite') {
                         $this->config['DEBUG'] && $this->printAndLog('User override active (mode = favorite)', 'DEBUG');
                         // User mode - do nothing
                         continue;
@@ -451,8 +453,6 @@ final class MIAPController
                     }
                 }
             }
-
-            sleep($this->config['POLLING_PERIOD']);
         }
     }
 
