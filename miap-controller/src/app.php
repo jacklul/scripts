@@ -42,6 +42,13 @@ final class MIAPController
     private $connected = false;
 
     /**
+     * Cached stats, waiting to be inserted to the database
+     *
+     * @var array
+     */
+    private $stats = [];
+
+    /**
      * @var array
      */
     private $config = [
@@ -60,6 +67,10 @@ final class MIAPController
         'TIME_ENABLE'           => '08:00', // When to enable the device
         'TIME_DISABLE'          => '00:00', // When to disable the device
         'TIME_SILENT'           => '22:00', // When to enable silent mode
+        'DBFILE'                => null,    // Database to log AQI data to (sqlite file path)
+        'DBINTERVAL'            => 60,      // Database write interval
+        'DBMAXDAYS'             => 0,       // Database record lifetime in days
+        'DBMAXSIZE'             => 0,       // Database max size in bytes
     ];
 
     /**
@@ -264,7 +275,7 @@ final class MIAPController
         date_default_timezone_set($this->config['TIMEZONE']);
 
         // Verify required configuration
-        foreach (['DEVICE_IP', 'DEVICE_TOKEN', 'LOG_FILE'] as $key) {
+        foreach (['DEVICE_IP', 'DEVICE_TOKEN'] as $key) {
             if (empty($this->config[$key])) {
                 $this->printAndLog('Required setting "' . $key . '" not set!', 'ERROR');
                 exit(1);
@@ -272,7 +283,7 @@ final class MIAPController
         }
 
         // Verify required numeric values
-        foreach (['AQI_ENABLE_THRESHOLD', 'AQI_DISABLE_THRESHOLD', 'AQI_CHECK_PERIOD', 'POLLING_PERIOD', 'CONNECT_RETRY'] as $key) {
+        foreach (['AQI_ENABLE_THRESHOLD', 'AQI_DISABLE_THRESHOLD', 'AQI_CHECK_PERIOD', 'POLLING_PERIOD', 'CONNECT_RETRY', 'DBINTERVAL', 'DBMAXDAYS'] as $key) {
             if (
                 !is_numeric($this->config[$key]) &&
                 (in_array($key, ['AQI_ENABLE_THRESHOLD', 'AQI_DISABLE_THRESHOLD']) && !is_null($this->config[$key]))
@@ -338,6 +349,32 @@ final class MIAPController
                 }
             }
         }
+
+        if (function_exists('pcntl_signal')) {
+            declare(ticks = 1);
+
+            $interrupt = function($signo = 130) {
+                echo PHP_EOL;
+                
+                if (!empty($this->config['DBFILE'])) {
+                    $this->writeStats();
+                }
+
+                $this->printAndLog(PHP_EOL . 'User interrupted' . PHP_EOL, 'NOTICE');
+                
+                exit(130);
+            };
+
+            pcntl_signal(SIGHUP, $interrupt);
+            pcntl_signal(SIGTERM, $interrupt);
+            pcntl_signal(SIGINT, $interrupt);
+        } else {
+            register_shutdown_function(function() {
+                if (!empty($this->config['DBFILE'])) {
+                    $this->writeStats();
+                }
+            });
+        }
     }
 
     /**
@@ -348,6 +385,8 @@ final class MIAPController
         !$this->config['CONSOLE_LOG_DATE'] && $this->printAndLog('Start time: ' . ((new DateTime('now'))->format('Y-m-d H:i:s')));
 
         $lastAqiCheck = 0;
+        $lastStatsSave = !empty($this->config['DBFILE']) ? time() : null;
+        $lastStatsClean = !empty($this->config['DBMAXDAYS']) ? 0 : null;
         while (true) {
             if ($this->device === null) {
                 $this->connect($this->model !== null);
@@ -400,14 +439,19 @@ final class MIAPController
                 if (!empty($properties += $this->getProperties(['power', 'mode', 'aqi']))) {
                     $this->printAndLog('AQI value is ' . $properties['aqi']);
 
+                    $this->stats[] = [
+                        'aqi' => $properties['aqi'],
+                        'time' => time(),
+                    ];
+
                     if ($properties['mode'] === 'favorite') {
-                        $this->config['DEBUG'] && $this->printAndLog('User override active (mode = favorite)', 'DEBUG');
+                        $this->printAndLog('User override active (mode = favorite)', 'DEBUG');
                         // User mode - do nothing
                         continue;
                     }
 
                     if ($time > $timeEnable && $time < $timeDisable) {
-                        $this->config['DEBUG'] && $this->printAndLog('In enabled time period', 'DEBUG');
+                        $this->printAndLog('In enabled time period', 'DEBUG');
 
                         if ($properties['aqi'] >= $this->config['AQI_ENABLE_THRESHOLD']) {
                             if ($time < $timeSilent && $properties['mode'] !== 'auto') {
@@ -429,7 +473,7 @@ final class MIAPController
             }
 
             if ($time > $timeEnable && $time < $timeDisable && $time > $timeSilent) {
-                $this->config['DEBUG'] && $this->printAndLog('In silent time period', 'DEBUG');
+                $this->printAndLog('In silent time period', 'DEBUG');
 
                 if (
                     (isset($properties['mode']) ||
@@ -442,7 +486,7 @@ final class MIAPController
             }
 
             if ($time > $timeDisable && $time < $timeEnable) {
-                $this->config['DEBUG'] && $this->printAndLog('In disabled time period', 'DEBUG');
+                $this->printAndLog('In disabled time period', 'DEBUG');
 
                 if (
                     (isset($properties['mode'], $properties['power'])) ||
@@ -452,6 +496,16 @@ final class MIAPController
                         $this->switchPower(false);
                     }
                 }
+            }
+
+            if ($lastStatsClean !== null && $lastStatsClean + $this->config['DBMAXDAYS'] <= time()) {
+                $lastStatsClean = time();
+                $this->cleanStats();
+            }
+
+            if ($lastStatsSave !== null && $lastStatsSave + $this->config['DBINTERVAL'] <= time()) {
+                $lastStatsSave = time();
+                $this->writeStats();
             }
         }
     }
@@ -814,6 +868,10 @@ final class MIAPController
             throw new RuntimeException('Invalid log severity: ' . $severity);
         }
 
+        if (strtoupper($severity) === 'DEBUG' && $this->config['DEBUG'] !== true) {
+            return;
+        }
+
         if (!empty($this->config['LOG_FILE'])) {
             if (!file_exists($this->config['LOG_FILE']) && !@touch($this->config['LOG_FILE'])) {
                 throw new RuntimeException('Unable to create log file: ' . $this->config['LOG_FILE']);
@@ -841,6 +899,117 @@ final class MIAPController
         }
 
         print trim($message) . PHP_EOL;
+    }
+
+    /**
+     * Open database file
+     *
+     * @return PDO
+     */
+    private function openDatabase(): ?PDO
+    {
+        if (empty($this->config['DBFILE']) || !is_string($this->config['DBFILE'])) {
+            return null;
+        }
+
+        $needs_init = false;
+        if (!file_exists($this->config['DBFILE'])) {
+            $needs_init = true;
+        }
+
+        $dbh = new PDO('sqlite:' . $this->config['DBFILE']);
+        $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        if ($needs_init) {
+            $sth = $dbh->prepare('CREATE TABLE `stats` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `aqi` INTEGERNOT NULL, `date` DATETIME NOT NULL)');
+            
+            if (!$sth->execute()) {
+                $this->printAndLog('Failed to create database schema: ' . $dbh->errorInfo(), 'ERROR');
+                exit(1);
+            }
+        }
+
+        return $dbh;
+    }
+
+    /**
+     * @return void
+     */
+    private function writeStats(): void
+    {
+        if ($dbh = $this->openDatabase()) {
+            $stats = $this->stats;
+            $this->stats = [];
+
+            $inserted = 0;
+            foreach ($stats as $stat) {
+                $sth = $dbh->prepare('INSERT INTO `stats` (aqi, date) VALUES (:aqi, :date)');
+                $sth->bindParam(':aqi', $stat['aqi'], PDO::PARAM_INT);
+                $sth->bindValue(':date', date('Y-m-d H:i:s', $stat['time']), PDO::PARAM_STR);
+
+                if ($sth->execute()) {
+                    $this->printAndLog('Inserted new record ID: ' . $dbh->lastInsertId(), 'DEBUG');
+
+                    $inserted++;
+                }
+            }
+
+            if ($inserted > 0) {
+                $this->printAndLog('Inserted ' . $inserted . ' new record(s) to the database', 'INFO');
+            }
+
+            $dbh = null;
+        }
+    }
+
+    /**
+     * @return void
+     */
+    private function cleanStats(): void
+    {
+        if ($dbh = $this->openDatabase()) {
+            $sth = $dbh->prepare('DELETE FROM `stats` WHERE `date` < :date');
+            $sth->bindValue(':date', date('Y-m-d H:i:s', strtotime('-' . $this->config['DBMAXDAYS'] . ' days')), PDO::PARAM_STR);
+            
+            if ($sth->execute()) {
+                $this->printAndLog('Affected row count: ' . $sth->rowCount(), 'DEBUG');
+
+                if ($sth->rowCount() > 0) {
+                    $this->printAndLog('Cleaned up ' . $sth->rowCount() . ' old record(s) from the database', 'INFO');
+                }
+            }
+            
+            if (filesize($this->config['DBFILE']) > $this->config['DBMAXSIZE']) {
+                $this->printAndLog('Database size exceeded ' . $this->config['DBMAXSIZE'] . ' bytes, performing cleanup...', 'INFO');
+
+                $started = time();
+                $removed = 0;
+                $toremove = ceil((filesize($this->config['DBFILE']) - $this->config['DBMAXSIZE']) / 32);
+                do {
+                    if ($dbh === null && !($dbh = $this->openDatabase())) {
+                        break;
+                    }
+
+                    $sth = $dbh->prepare('DELETE FROM `stats` WHERE `id` IN (SELECT `id` FROM `stats` ORDER BY `id` ASC LIMIT :limit)');
+                    $sth->bindParam(':limit', $toremove, PDO::PARAM_INT);
+                    
+                    if ($sth->execute()) {
+                        $removed += $toremove;
+                        $toremove = ceil($toremove/2);
+                        
+                        $dbh->query('VACUUM');
+                        $dbh = null;
+                        clearstatcache();
+                    }
+                } while (filesize($this->config['DBFILE']) > $this->config['DBMAXSIZE'] && $started + 10 > time());
+                
+                if ($removed > 0) {
+                    $this->printAndLog('Removed ' . $removed . ' oldest record(s) from the database', 'INFO');
+                }
+            } else {
+                $dbh = null;
+            }
+        }
     }
 }
 

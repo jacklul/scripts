@@ -3,8 +3,8 @@
 SPATH=$(dirname $0)
 set -e
 
-if [ -f "$SPATH/miap-controller.phar" ] && [ -f "$SPATH/miap-controller-user.service" ] && [ -f "$SPATH/miap-controller-system.service" ]; then
-	if [ "$UID" -eq 0 ]; then
+if [ -f "$SPATH/miap-controller.phar" ]; then
+	if [ "$UID" -eq 0 ] && [ -f "$SPATH/miap-controller-system.service" ]; then
 		cp -v $SPATH/miap-controller.phar /usr/local/bin/miap-controller && chmod 755 /usr/local/bin/miap-controller
 		cp -v $SPATH/miap-controller-system.service /etc/systemd/system/miap-controller.service && chmod 644 /etc/systemd/system/miap-controller.service
 		
@@ -13,7 +13,7 @@ if [ -f "$SPATH/miap-controller.phar" ] && [ -f "$SPATH/miap-controller-user.ser
 		echo -e "\nTo enable the service use this command: \"sudo systemctl enable miap-controller.service\""
 
 		systemctl daemon-reload
-	else
+	elif [ -f "$SPATH/miap-controller-user.service" ]; then
 		mkdir -pv ~/.local/bin
 		cp -v $SPATH/miap-controller.phar ~/.local/bin/miap-controller && chmod 755 ~/.local/bin/miap-controller
 
@@ -26,6 +26,9 @@ if [ -f "$SPATH/miap-controller.phar" ] && [ -f "$SPATH/miap-controller-user.ser
 		echo "You might also need to run \"loginctl enable-linger $USER\" to enable the launch of services for not logged in users"
 
 		systemctl daemon-reload --user
+	else
+		echo "Missing required files for installation!"
+		exit 1
 	fi
 else
 	echo "Missing required files for installation!"
