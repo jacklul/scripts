@@ -49,6 +49,13 @@ final class MIAPController
     private $stats = [];
 
     /**
+     * Command to execute
+     *
+     * @var string
+     */
+    private $command = null;
+
+    /**
      * @var array
      */
     private $config = [
@@ -246,11 +253,19 @@ final class MIAPController
             $config_names = ['miap-controller.conf'];
         }
 
-        if (isset($args[1]) && file_exists($args[1])) {
-            $user_config = dirname(dirname($args[1]) . DIRECTORY_SEPARATOR . basename($args[1]));
-            $config_names = [
-                basename($args[1])
-            ];
+        if (isset($args[1])) {
+            if (file_exists($args[1])) {
+                $user_config = dirname(dirname($args[1]) . DIRECTORY_SEPARATOR . basename($args[1]));
+                $config_names = [
+                    basename($args[1])
+                ];
+            } else {
+                $this->command = $args[1];
+            }
+        }
+        
+        if (isset($args[2]) && $this->command === null) {
+            $this->command = $args[2];
         }
 
         // Load variables using dotenv
@@ -392,6 +407,20 @@ final class MIAPController
                 $this->connect($this->model !== null);
             } else {
                 sleep($this->config['POLLING_PERIOD']);
+            }
+
+            if ($this->command !== null) {
+                $this->printAndLog('Executing command \'' . $this->command . '\'...', 'DEBUG');
+                
+                $status = $this->sendCommand($this->command);
+
+                if ($status) {
+                    $this->printAndLog('Successfully executed command \'' . $this->command . '\'!', 'INFO');
+                } else {
+                    $this->printAndLog('Failed to execute command \'' . $this->command . '\'!', 'INFO');
+                }
+
+                exit;
             }
 
             $properties = [];
@@ -1010,6 +1039,43 @@ final class MIAPController
                 $dbh = null;
             }
         }
+    }
+    
+    /**
+     * @param string $command
+     *
+     * @return bool|null
+     */
+    private function sendCommand(string $command): ?bool
+    {
+        $commands = [
+            'power_on' => [
+                'property' => 'power',
+                'value' => true,
+            ],
+            'power_off' => [
+                'property' => 'power',
+                'value' => false,
+            ],
+            'mode_auto' => [
+                'property' => 'mode',
+                'value' => 'auto',
+            ],
+            'mode_silent' => [
+                'property' => 'mode',
+                'value' => 'silent',
+            ],
+            'mode_favorite' => [
+                'property' => 'mode',
+                'value' => 'favorite',
+            ],
+        ];
+
+        if (isset($commands[$command])) {
+            return $this->setProperty($commands[$command]['property'], $commands[$command]['value']);
+        }
+
+        return null;
     }
 }
 
