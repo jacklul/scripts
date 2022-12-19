@@ -295,8 +295,17 @@ if %TEST_MODE% equ true (
 	)
 )
 
+:syncwait
 if "%ARG%"=="sync-wait" (
+	choice /C YN /M "Beging synchronization "
+	if errorlevel 2 goto syncwait_exit
+	if errorlevel 1 goto syncwait_continue
+
+	:syncwait_exit
 	@pause
+	goto syncwait_eof
+	
+	:syncwait_continue
 	echo.
 )
 
@@ -317,6 +326,7 @@ if "%ARG%"=="sync" (
 echo.
 @pause
 
+:syncwait_eof
 if "%ARG%"=="sync-wait" (
 	exit /B %ERRORLEVEL%
 )
