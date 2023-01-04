@@ -9,11 +9,11 @@ command -v curl >/dev/null 2>&1 || { echo "This script requires cURL to run, ins
 
 SPATH=$(dirname $0)
 
-if [ -f "$SPATH/telegram-notify" ] && [ -f "$SPATH/telegram-notify.conf" ]; then
+if [ -f "$SPATH/telegram-notify" ]; then
 	cp -v $SPATH/telegram-notify /usr/local/bin/telegram-notify && \
 	chmod +x /usr/local/bin/telegram-notify
 
-	if [ ! -f "/etc/telegram-notify.conf" ]; then
+	if [ ! -f "/etc/telegram-notify.conf" ] && [ -f "$SPATH/telegram-notify.conf" ]; then
 		cp -v $SPATH/telegram-notify.conf /etc/telegram-notify.conf
 	fi
 	
