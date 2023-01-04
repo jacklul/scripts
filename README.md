@@ -1,5 +1,3 @@
 # jacklul/scripts
 
-A collections of various scripts I've been using.
-
-I run most of these on Raspberry Pi(s).
+A collections of various scripts that I've been using on my PC, Raspberry Pi's or routers.
