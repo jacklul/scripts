@@ -16,7 +16,7 @@ function process() {
 	REMOTE=`wget -qO- https://github.com/NicolasBernaerts/debian-scripts/blob/master/telegram/telegram-notify?raw=true`
 	
 	if [ $? -eq 0 ]; then
-		LOCAL=$(cat /usr/local/bin/telegram-notify | sed -n "/Revision history/,/# --/p" | head -n-1 | tail -n+2 | tail -1 | awk '{print $3}')
+		LOCAL=$(cat /usr/local/bin/telegram-notify | head -n 100 | sed -n "/Revision history/,/# --/p" | head -n-1 | tail -n+2 | tail -1 | awk '{print $3}')
 		LATEST=$(echo $REMOTE | sed -n "/Revision history/,/# --/p" | head -n-1 | tail -n+2 | tail -1 | awk '{print $3}')
 		
 		if [ "$LATEST" != "" ] && [ "$LOCAL" != "$LATEST" ]; then
