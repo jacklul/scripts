@@ -1,0 +1,11 @@
+[Unit]
+Description=Announce yourself as UPnP device
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/simple-upnpd --xml /etc/simple-upnpd.xml
+
+[Install]
+WantedBy=multi-user.target
