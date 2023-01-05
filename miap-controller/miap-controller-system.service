@@ -1,6 +1,6 @@
 [Unit]
 Description=Mi Air Purifier Controller
-After=network-online.target multi-user.target
+After=network-online.target
 Wants=network-online.target
 
 [Service]

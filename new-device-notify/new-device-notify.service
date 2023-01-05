@@ -1,6 +1,7 @@
 [Unit]
 Description=Scan for new devices in the network
-After=multi-user.target pihole-FTL.service
+After=network-online.target multi-user.target pihole-FTL.service
+Wants=network-online.target multi-user.target
 
 [Service]
 Type=simple

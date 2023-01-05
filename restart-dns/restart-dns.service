@@ -1,6 +1,7 @@
 [Unit]
 Description=Restart DNS services when pihole-FTL is restarted
 After=multi-user.target pihole-FTL.service
+Wants=multi-user.target
 
 [Service]
 Type=simple

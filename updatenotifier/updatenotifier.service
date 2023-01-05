@@ -1,7 +1,7 @@
 [Unit]
 Description=Run custom update notifier
 After=network-online.target multi-user.target
-Wants=network-online.target
+Wants=network-online.target multi-user.target
 
 [Service]
 Type=simple

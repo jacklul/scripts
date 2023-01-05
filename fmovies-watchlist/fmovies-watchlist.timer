@@ -6,4 +6,4 @@ OnCalendar=*:0/10
 RandomizedDelaySec=60s
 
 [Install]
-WantedBy=default.target
+WantedBy=timers.target
