@@ -1,5 +1,5 @@
 [Unit]
-Description=Run showRSS checker
+Description=Run showRSS checker regularly
 
 [Timer]
 OnCalendar=*:0/10

@@ -1,5 +1,5 @@
 [Unit]
-Description=Scan for new devices in the network on the schedule
+Description=Regularly check for new devices in the network
 
 [Timer]
 OnCalendar=*:0/1

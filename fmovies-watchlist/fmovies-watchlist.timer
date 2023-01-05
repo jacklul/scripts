@@ -1,5 +1,5 @@
 [Unit]
-Description=Run FMovies watchlist notifier
+Description=Run FMovies watchlist notifier regularly
 
 [Timer]
 OnCalendar=*:0/10

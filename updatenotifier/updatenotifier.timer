@@ -1,5 +1,5 @@
 [Unit]
-Description=Run custom update notifier regularly
+Description=Regularly run custom update notifier
 
 [Timer]
 OnCalendar=*-*-* 06:00
