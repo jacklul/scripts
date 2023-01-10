@@ -402,7 +402,7 @@ final class FMoviesNotify
         $watchlist = [];
 
         while ($retry < 3) {
-            isset($this->config['debug']) && print('Fetching watchlist page ' . $page . ' (attempt ' . ($retry + 1) . ')' . PHP_EOL);
+            print('Fetching watchlist page ' . $page . ' (attempt ' . ($retry + 1) . ')' . PHP_EOL);
 
             $data = $this->request($this->endpoint . '/user/watchlist?page=' . $page);
 
