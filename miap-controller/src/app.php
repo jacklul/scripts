@@ -872,10 +872,10 @@ final class MIAPController
                     } else {
                         throw new Exception('Received invalid, empty or no response from the device');
                     }
-                }, function (Exception $e) {
+                }, function (Throwable $e) {
                     throw $e;
                 });
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $this->printAndLog($e->getMessage(), 'ERROR');
 
             $this->connected && $this->disconnect(); // Initiate reconnect
