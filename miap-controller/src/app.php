@@ -1075,6 +1075,11 @@ final class MIAPController
             return $this->setProperty($commands[$command]['property'], $commands[$command]['value']);
         }
 
+        if ($command === 'status') {
+            echo json_encode($this->getProperties()) . PHP_EOL;
+            return true;
+        }
+
         return null;
     }
 }
