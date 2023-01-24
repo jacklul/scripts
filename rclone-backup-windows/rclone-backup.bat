@@ -128,7 +128,12 @@ if '%errorlevel%' NEQ '0' (
 
 :: Overwrite config with test mode variables
 if %TEST_MODE% equ true (
-	set RCLONE_CONFIG=%~dp0rclone-test.conf
+	if not exist "%TEMP%\rclone-test.conf" (
+		echo [memory]> "%TEMP%\rclone-test.conf"
+		echo type = memory>> "%TEMP%\rclone-test.conf"
+	)
+
+	set RCLONE_CONFIG=%TEMP%\rclone-test.conf
 	set REMOTE_PATH=memory:
 	set DRY_RUN=true
 	set USE_VSS=false
