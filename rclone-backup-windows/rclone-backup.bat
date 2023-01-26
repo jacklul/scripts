@@ -60,6 +60,8 @@ set VSS_DRIVE=T
 set ARGUMENTS=--skip-links --ignore-case --fast-list
 set ARGUMENTS_FTP=--vfs-cache-mode off --no-modtime --crypt-show-mapping
 set ARGUMENTS_WEBDAV=--vfs-cache-mode off --no-modtime --crypt-show-mapping --read-only
+set PORT_FTP=2150
+set PORT_WEBDAV=8050
 set TEST_LOG=%TEMP%\rclone.log
 
 :: For WebDav RW: --cache-dir="%TEMP%\rclone-vfs-cache" --vfs-cache-mode writes
@@ -235,9 +237,9 @@ goto menu
 :: Serve remote through FTP
 :serve_ftp
 cls
-::start "" ftp://localhost:2172/
-echo ftp://localhost:2172/
-rclone --config="%RCLONE_CONFIG%" serve ftp %REMOTE_PATH% --addr localhost:2172 %ARGUMENTS_FTP%
+::start "" ftp://localhost:%PORT_FTP%/
+echo ftp://localhost:%PORT_FTP%/
+rclone --config="%RCLONE_CONFIG%" serve ftp %REMOTE_PATH% --addr localhost:%PORT_FTP% %ARGUMENTS_FTP%
 
 if "%ARG%"=="ftp" goto eof
 @pause
@@ -246,9 +248,9 @@ goto menu
 :: Serve remote through WebDAV
 :serve_webdav
 cls
-::start "" http://localhost:8072/
-echo http://localhost:8072/
-rclone --config="%RCLONE_CONFIG%" serve webdav %REMOTE_PATH% --addr localhost:8072 %ARGUMENTS_WEBDAV%
+::start "" http://localhost:%PORT_WEBDAV%/
+echo http://localhost:%PORT_WEBDAV%/
+rclone --config="%RCLONE_CONFIG%" serve webdav %REMOTE_PATH% --addr localhost:%PORT_WEBDAV% %ARGUMENTS_WEBDAV%
 
 if "%ARG%"=="webdav" goto eof
 @pause
