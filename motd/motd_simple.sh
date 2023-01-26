@@ -1,4 +1,6 @@
 ﻿#!/bin/bash
+# /etc/profile.d/motd.sh
+#
 # Uptime: 3 days, 5 hours, 24 minutes
 # Memory: Total: 480MB, Used: 144MB, Free: 158MB
 # System space: Total: 5.0GB, Used: 1.5GB, Free: 3.2GB
