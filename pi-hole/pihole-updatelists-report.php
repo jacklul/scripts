@@ -11,8 +11,7 @@
 #  Type=oneshot
 #  ExecStartPost=-/bin/sh -c "/usr/local/bin/telegram-notify --icon 1F4CA --title \"Pi-hole's Scheduled Lists Update @ %H\" --text \"$(/opt/helpers/pihole-updatelists-report.php)\" --html --silent"
 
-$command = "journalctl _SYSTEMD_INVOCATION_ID=$(systemctl show -p InvocationID --value pihole-updatelists.service) | grep \"Fetching\|Merging\|Processing\|Number of \|Finished.*in.*seconds\" | sed 's/^.*]://' | sed 's/\[i\]//' | sed 's/^ *//;s/ *$//'";
-
+$command = "journalctl _SYSTEMD_INVOCATION_ID=$(systemctl show -p InvocationID --value pihole-updatelists.service)";
 $output = shell_exec($command);
 
 if (empty($output)) {
@@ -35,9 +34,23 @@ if ($anyOutput) {
 }
 
 preg_match_all('/Number of .*/', $output, $matches);
-
 echo implode(PHP_EOL, $matches[0]) . PHP_EOL;
 
-preg_match_all('/Finished.*seconds/', $output, $matches);
+preg_match_all('/Finished.*seconds.*\n.*Neutrino emissions detected/', $output, $matches);
 
-echo PHP_EOL . implode(PHP_EOL, $matches[0]) . PHP_EOL;
+// pihole updateGravity ran after pihole-updatelists finished
+if (!empty($matches[0])) {
+	preg_match_all('/([a-zA-Z]+ \d{1,2} \d{1,2}:\d{1,2}:\d{1,2}) [a-zA-Z]+ .*\:/', $output, $matches);
+
+	if (isset($matches[1][0])) {
+		$first = $matches[1][0];
+		$last = $matches[1][count($matches[1]) - 1];
+
+		$seconds = (new DateTime($last))->getTimestamp() - (new DateTime($first))->getTimestamp(); 
+
+		echo PHP_EOL . 'Finished in ' . $seconds . ' seconds.' . PHP_EOL;
+	}
+} else {
+	preg_match_all('/Finished.*seconds/', $output, $matches);
+	echo PHP_EOL . implode(PHP_EOL, $matches[0]) . PHP_EOL;
+}
