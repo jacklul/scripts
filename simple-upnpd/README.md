@@ -4,6 +4,10 @@ Convenient build and install scripts for making simple-upnpd work as a systemd s
 
 **[Original program by Jeroen Hofstee](https://github.com/victronenergy/simple-upnpd).**
 
+Some alternatives:
+- https://github.com/mhei/u2pnpd
+- https://github.com/rozhuk-im/ssdpd
+
 ## Requirements
 
 - systemd
