@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root xmlns="urn:schemas-upnp-org:device-1-0">
+	<specVersion>
+		<major>1</major>
+		<minor>0</minor>
+	</specVersion>
+
+	<URLBase></URLBase>
+	<device>
+		<deviceType>urn:schemas-upnp-org:device:Basic:1</deviceType>
+		<friendlyName></friendlyName>
+		<manufacturer></manufacturer>
+		<manufacturerURL>h</manufacturerURL>
+		<modelName></modelName>
+		<modelDescription></modelDescription>
+		<modelNumber></modelNumber>
+		<modelURL></modelURL>
+		<serialNumber></serialNumber>
+		<UDN></UDN>
+		<UPC></UPC>
+		<iconList>
+			<icon>
+				<mimetype>image/png</mimetype>
+				<width>512</width>
+				<height>512</height>
+				<depth>32</depth>
+				<url>/icon.png</url>
+			</icon>
+		</iconList>
+		<presentationURL></presentationURL>
+	</device>
+</root>

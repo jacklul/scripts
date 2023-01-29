@@ -1,7 +1,3 @@
-LICENSE.txt
-Makefile
-description.xml
-simple-upnpd.c
-simple-upnpd.o
+source
 simple-upnpd
 simple-upnpd.xml

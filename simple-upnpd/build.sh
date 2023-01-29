@@ -13,21 +13,21 @@ do
 done
 
 if [ "$NOTINSTALLED" != "" ]; then
-
 	sudo apt install $NOTINSTALLED
 fi
 
-if [ ! -f "$(dirname $0)/simple-upnpd.c" ]; then
-	if [ -d "$(dirname $0)/tmpcheckoutdir" ]; then
-		rm -fr "$(dirname $0)/tmpcheckoutdir"
+if [ ! -f "$(dirname $0)/source/simple-upnpd.c" ]; then
+	if [ ! -d "$(dirname $0)/source" ]; then
+		mkdir -v "$(dirname $0)/source"
 	fi
-	
-	mkdir -v "$(dirname $0)/tmpcheckoutdir"
-	git clone  https://github.com/victronenergy/simple-upnpd.git "$(dirname $0)/repo"
-	mv -fv "$(dirname $0)/tmpcheckoutdir/.git" "$(dirname $0)"
-	git reset --hard HEAD
-	rmdir "$(dirname $0)/tmpcheckoutdir"
+
+	git clone https://github.com/victronenergy/simple-upnpd.git "$(dirname $0)/source"
 fi
 
+cd "$(dirname $0)/source"
 make clean
 make
+
+if [ -f "simple-upnpd" ]; then
+	cp -v simple-upnpd ../simple-upnpd
+fi
