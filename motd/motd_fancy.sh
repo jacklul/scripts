@@ -149,10 +149,10 @@ if [ -f "/opt/vc/bin/vcgencmd" ]; then
   stats="$stats\n$label_temperature"
 fi
 
-APT_NOTIFY_STATEFILE=/var/cache/apt/apt-daily-notify.state
+APT_NOTIFY_STATEFILE=/var/lib/apt/update-notify.state
 
 if [ -f "$APT_NOTIFY_STATEFILE" ]; then
-  COUNT=$(echo $(cat $APT_NOTIFY_STATEFILE) | grep "\S" | wc -l)
+  COUNT=$(cat $APT_NOTIFY_STATEFILE | grep "\S" | wc -l)
   label_updates="$(extend "$([ $COUNT -gt 0 ] && ([ $COUNT -gt 1 ] && echo "$COUNT packages" || echo "$COUNT package") || echo "None")")"
   label_updates="$borderBar  $(color $statsLabelColor "APT updates")$(color $statsDotsColor "...")$(color $statsLabelColor ":") $label_updates$borderBar"
   stats="$stats\n$label_updates"
