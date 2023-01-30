@@ -231,6 +231,59 @@ is_number()
     return 1
 }
 
+# Look for "state RELATED,ESTABLISHED" and "state INVALID" rules at the beggining and return line number after those
+get_line_number_states() {
+    local CMD=$1
+    local HAS_ACCEPT_STATE=`$CMD -L INPUT -nv --line-numbers | grep "state RELATED,ESTABLISHED" | awk '{print $1}' | head -1`
+    local HAS_INVALID_STATE=`$CMD -L INPUT -nv --line-numbers | grep "state INVALID" | awk '{print $1}' | head -1`
+    local LINE=1
+
+    if [ "$HAS_ACCEPT_STATE" != "" ]; then
+        if [ "$HAS_INVALID_STATE" != "" ]; then
+            if [ "$HAS_INVALID_STATE" -gt "$HAS_ACCEPT_STATE" ]; then
+                LINE=$((HAS_INVALID_STATE+1))
+            elif [ "$HAS_ACCEPT_STATE" -gt "$HAS_INVALID_STATE" ]; then
+                error "Rule for state=INVALID is before state=RELATED,ESTABLISHED - consider swapping them around for better performance"
+
+                LINE=$((HAS_ACCEPT_STATE+1))
+            else
+                error "Failed to compare line numbers for state=INVALID and state=RELATED,ESTABLISHED - this shouldn't happen"
+            fi
+        else # No INVALID state rule found
+            LINE=$((HAS_ACCEPT_STATE+1))
+        fi
+    fi
+
+    return $LINE
+}
+
+# Look for drop or reject rules at the end of the table and return line number before those
+get_line_number_end() {
+    local CMD=$1
+    local LINESSKIP=$2
+    local LINE=1
+
+    # Skip number of lines provided
+    if [ "$LINESSKIP" != "" ]; then
+        LINE=$LINESSKIP
+    fi
+
+    local LIST="$($CMD -L INPUT -nv --line-numbers)"
+    local CHECK="$(echo "$LIST" | tail -n +$((LINE+2)) | grep -v "policy" | grep "DROP\|REJECT" | head -1 | awk '{print $1}')"
+
+    if [ "$CHECK" != "" ]; then
+        return "$CHECK"
+    fi
+
+    local LASTLINE="$(echo "$LIST" | tail -1 | awk '{print $1}')"
+
+    if [ "$LASTLINE" != "" ]; then
+        return $((LASTLINE+1))
+    fi
+
+    return 1
+}
+
 POSITIONAL_ARGS=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -527,11 +580,37 @@ CHECK_FOR_PORT_RULE=`iptables -L | grep :$PORT | grep ACCEPT`
 if [ "$INPUT_POLICY" != "ACCEPT" ] && [ "$CHECK_FOR_PORT_RULE" == "" ]; then
     [ "$QUIET" != "true" ] && echo "Server port"
 
-    rule "$IPT" "-A" "INPUT -i $OUT_INTERFACE -p udp --dport $PORT -j ACCEPT"
+    get_line_number_states "$IPT"
+    STATES_LINE=$?
+    if [ "$STATES_LINE" -gt "1" ]; then
+        get_line_number_end "$IPT" "$STATES_LINE"
+        END_LINE=$?
+        if [ "$END_LINE" -gt "$STATES_LINE" ]; then
+            LINE=$END_LINE
+        fi
+    else
+        get_line_number_end "$IPT"
+        LINE=$END_LINE
+    fi
+
+    rule "$IPT" "-I" "$LINE" "INPUT -i $OUT_INTERFACE -p udp --dport $PORT -j ACCEPT"
 
     CHECK_FOR_PORT_RULE6=`ip6tables -L | grep :$PORT | grep ACCEPT`
     if [ "$CHECK_FOR_PORT_RULE6" == "" ] && [ "$INPUT_POLICY6" != "ACCEPT" ] && [ "$IPV6" == "true" ]; then
-        rule "$IPT6" "-A" "INPUT -i $OUT_INTERFACE -p udp --dport $PORT -j ACCEPT"
+        get_line_number_states "$IPT6"
+        STATES_LINE=$?
+        if [ "$STATES_LINE" -gt "1" ]; then
+            get_line_number_end "$IPT6" "$STATES_LINE"
+            END_LINE=$?
+            if [ "$END_LINE" -gt "$STATES_LINE" ]; then
+                LINE=$END_LINE
+            fi
+        else
+            get_line_number_end "$IPT6"
+            LINE=$END_LINE
+        fi
+
+        rule "$IPT6" "-I" "$LINE" "INPUT -i $OUT_INTERFACE -p udp --dport $PORT -j ACCEPT"
     fi
 fi
 
@@ -572,6 +651,18 @@ if [ "$FORWARD_POLICY" != "ACCEPT" ]; then
             remove_chain "$IPT6" "FORWARD_$IN_INTERFACE_UPPER"
         fi
     fi
+fi
+
+FORWARD_LINE=1
+FORWARD_LINE6=1
+FORWARD_LINE_CHECK="$($IPT -L FORWARD -nv --line-numbers | grep "FORWARD_$IN_INTERFACE_UPPER" | head -1 | awk '{print $1}')"
+FORWARD_LINE_CHECK6="$($IPT6 -L FORWARD -nv --line-numbers | grep "FORWARD_$IN_INTERFACE_UPPER" | head -1 | awk '{print $1}')"
+
+if [ "$FORWARD_LINE_CHECK" != "" ]; then
+    FORWARD_LINE=$FORWARD_LINE_CHECK
+fi
+if [ "$FORWARD_LINE_CHECK6" != "" ]; then
+    FORWARD_LINE6=$FORWARD_LINE_CHECK6
 fi
 
 # Enable global Masquerade NAT
@@ -635,7 +726,7 @@ if [ "$ISOLATION" == "true" ]; then
         rule "$IPT" "-A" "ISOLATE_$IN_INTERFACE_UPPER -j RETURN"
     fi
 
-    rule "$IPT" "-I" 1 "FORWARD -i $IN_INTERFACE -d $IN_NETWORK/$IN_NETMASK -j ISOLATE_$IN_INTERFACE_UPPER"
+    rule "$IPT" "-I" "$FORWARD_LINE" "FORWARD -i $IN_INTERFACE -d $IN_NETWORK/$IN_NETMASK -j ISOLATE_$IN_INTERFACE_UPPER"
 
     if [ "$ACTION" == "down" ] && is_chain_empty "$IPT" "ISOLATE_$IN_INTERFACE_UPPER"; then
         remove_chain "$IPT" "ISOLATE_$IN_INTERFACE_UPPER"
@@ -649,7 +740,7 @@ if [ "$ISOLATION" == "true" ]; then
             rule "$IPT6" "-A" "ISOLATE_$IN_INTERFACE_UPPER -j RETURN"
         fi
 
-        rule "$IPT6" "-I" 1 "FORWARD -i $IN_INTERFACE -d $IN_NETWORK6/$IN_NETMASK6 -j ISOLATE_$IN_INTERFACE_UPPER"
+        rule "$IPT6" "-I" "$FORWARD_LINE6" "FORWARD -i $IN_INTERFACE -d $IN_NETWORK6/$IN_NETMASK6 -j ISOLATE_$IN_INTERFACE_UPPER"
 
         if [ "$ACTION" == "down" ] && is_chain_empty "$IPT6" "ISOLATE_$IN_INTERFACE_UPPER"; then
             remove_chain "$IPT6" "ISOLATE_$IN_INTERFACE_UPPER"
@@ -669,7 +760,7 @@ if [ "$LAN_ONLY" == "true" ]; then
         rule "$IPT" "-A" "LANONLY_$IN_INTERFACE_UPPER -j RETURN"
     fi
 
-    rule "$IPT" "-I" 1 "FORWARD -i $IN_INTERFACE -j LANONLY_$IN_INTERFACE_UPPER"
+    rule "$IPT" "-I" "$FORWARD_LINE" "FORWARD -i $IN_INTERFACE -j LANONLY_$IN_INTERFACE_UPPER"
 
     if [ "$ACTION" == "down" ] && is_chain_empty "$IPT" "LANONLY_$IN_INTERFACE_UPPER"; then
         remove_chain "$IPT" "LANONLY_$IN_INTERFACE_UPPER"
@@ -684,7 +775,7 @@ if [ "$LAN_ONLY" == "true" ]; then
             rule "$IPT6" "-A" "LANONLY_$IN_INTERFACE_UPPER -j RETURN"
         fi
 
-        rule "$IPT6" "-I" 1 "FORWARD -i $IN_INTERFACE -j LANONLY_$IN_INTERFACE_UPPER"
+        rule "$IPT6" "-I" "$FORWARD_LINE6" "FORWARD -i $IN_INTERFACE -j LANONLY_$IN_INTERFACE_UPPER"
 
         if [ "$ACTION" == "down" ] && is_chain_empty "$IPT6" "LANONLY_$IN_INTERFACE_UPPER"; then
             remove_chain "$IPT6" "LANONLY_$IN_INTERFACE_UPPER"
@@ -703,7 +794,7 @@ if [ "$DEVICE_ONLY" == "true" ]; then
         rule "$IPT" "-A" "DEVONLY_$IN_INTERFACE_UPPER -j RETURN"
     fi
 
-    rule "$IPT" "-I" 1 "FORWARD -i $IN_INTERFACE ! -d $IN_NETWORK/$IN_NETMASK -j DEVONLY_$IN_INTERFACE_UPPER"
+    rule "$IPT" "-I" "$FORWARD_LINE" "FORWARD -i $IN_INTERFACE ! -d $IN_NETWORK/$IN_NETMASK -j DEVONLY_$IN_INTERFACE_UPPER"
 
     if [ "$ACTION" == "down" ] && is_chain_empty "$IPT" "DEVONLY_$IN_INTERFACE_UPPER"; then
         remove_chain "$IPT" "DEVONLY_$IN_INTERFACE_UPPER"
@@ -717,7 +808,7 @@ if [ "$DEVICE_ONLY" == "true" ]; then
             rule "$IPT6" "-A" "DEVONLY_$IN_INTERFACE_UPPER -j RETURN"
         fi
 
-        rule "$IPT6" "-I" 1 "FORWARD -i $IN_INTERFACE ! -d $IN_NETWORK6/$IN_NETMASK6 -j DEVONLY_$IN_INTERFACE_UPPER"
+        rule "$IPT6" "-I" "$FORWARD_LINE6" "FORWARD -i $IN_INTERFACE ! -d $IN_NETWORK6/$IN_NETMASK6 -j DEVONLY_$IN_INTERFACE_UPPER"
 
         if [ "$ACTION" == "down" ] && is_chain_empty "$IPT6" "DEVONLY_$IN_INTERFACE_UPPER"; then
             remove_chain "$IPT6" "DEVONLY_$IN_INTERFACE_UPPER"
@@ -728,34 +819,8 @@ fi
 # Prevent VPN clients from accessing anything but DNS on this device
 if [ "$DNS_ONLY" == "true" ]; then
     [ "$QUIET" != "true" ] && echo "Access to DNS only on this device"
-
-    # Look for "state RELATED,ESTABLISHED" and "state INVALID" rules at the beggining
-    get_line_number_dns_only() {
-        local CMD=$1
-        local HAS_ACCEPT_STATE=`$CMD -L INPUT -nv --line-numbers | grep "state RELATED,ESTABLISHED" | awk '{print $1}' | head -1`
-        local HAS_INVALID_STATE=`$CMD -L INPUT -nv --line-numbers | grep "state INVALID" | awk '{print $1}' | head -1`
-        local LINE=1
-
-        if [ "$HAS_ACCEPT_STATE" != "" ]; then
-            if [ "$HAS_INVALID_STATE" != "" ]; then
-                if [ "$HAS_INVALID_STATE" -gt "$HAS_ACCEPT_STATE" ]; then
-                    LINE=$((HAS_INVALID_STATE+1))
-                elif [ "$HAS_ACCEPT_STATE" -gt "$HAS_INVALID_STATE" ]; then
-                    error "Rule for state=INVALID is before state=RELATED,ESTABLISHED - consider swapping them around for better performance"
-
-                    LINE=$((HAS_ACCEPT_STATE+1))
-                else
-                    error "Failed to compare line numbers for state=INVALID and state=RELATED,ESTABLISHED - this shouldn't happen"
-                fi
-            else # No INVALID state rule
-                LINE=$((HAS_ACCEPT_STATE+1))
-            fi
-        fi
-
-        return $LINE
-    }
     
-    get_line_number_dns_only "$IPT"
+    get_line_number_states "$IPT"
     LINE=$?
 
     if ! chain_exists "$IPT" "DNSONLY_$IN_INTERFACE_UPPER"; then
@@ -780,7 +845,7 @@ if [ "$DNS_ONLY" == "true" ]; then
     fi
 
     if [ "$IN_IPV6" == "true" ]; then
-        get_line_number_dns_only "$IPT6"
+        get_line_number_states "$IPT6"
         LINE=$?
 
         if ! chain_exists "$IPT6" "DNSONLY_$IN_INTERFACE_UPPER"; then
