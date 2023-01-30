@@ -8,6 +8,14 @@
 #  PreDown = /etc/wireguard/iptables-helper.sh -i %i -o eth0 down
 #
 # Check ./iptables-helper.sh --help for more information
+#
+# You shouldn't use full masquerade if you're hosting the server at home - add static route to your router instead.
+# Use --samba to masquerade Samba traffic coming to your LAN so you can access your firewalled network shares.
+# Use --device-only and --dns-only together if you're using Pi-hole and want to prevent clients from accessing anything else on your network.
+# Use --lan-only to prevent clients from accessing the internet.
+# Use --client-isolation to prevent clients from talking too each other.
+# To enable IPv6 support use --ipv6 switch.
+#
 
 [ "$UID" -eq 0 ] || { echo "Root privileges required!"; exit 1; }
 
