@@ -1,0 +1,29 @@
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+COMMIT
+
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+:LANONLY - [0:0]
+:SERVICES - [0:0]
+-A INPUT -m rt --rt-type 0 -j DROP
+-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+-A INPUT -m state --state INVALID -j DROP
+-A INPUT -p ipv6-icmp -j LANONLY
+-A INPUT -i lo -j ACCEPT
+-A INPUT -j SERVICES
+#-A INPUT -m limit --limit 1/sec -j LOG --log-prefix "[DROP] " --log-level 7
+-A FORWARD -m rt --rt-type 0 -j DROP
+-A OUTPUT -m rt --rt-type 0 -j DROP
+-A LANONLY -s fe80::/10 -j ACCEPT
+-A LANONLY -s fd00::/8 -j ACCEPT
+-A LANONLY -j DROP
+-A SERVICES -p tcp -m state --state NEW -m tcp --dport 22 -j LANONLY
+-A SERVICES -p udp -m state --state NEW -m udp --sport 546:547 --dport 546:547 -j ACCEPT
+-A SERVICES -j RETURN
+COMMIT

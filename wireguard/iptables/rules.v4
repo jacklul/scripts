@@ -1,0 +1,27 @@
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+COMMIT
+
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+:LANONLY - [0:0]
+:SERVICES - [0:0]
+-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+-A INPUT -m state --state INVALID -j DROP
+-A INPUT -p icmp -j LANONLY
+-A INPUT -i lo -j ACCEPT
+-A INPUT -j SERVICES
+#-A INPUT -m limit --limit 1/sec -j LOG --log-prefix "[DROP] " --log-level 7
+-A LANONLY -s 192.168.0.0/16 -j ACCEPT
+-A LANONLY -s 172.16.0.0/12 -j ACCEPT
+-A LANONLY -s 10.0.0.0/8 -j ACCEPT
+-A LANONLY -j DROP
+-A SERVICES -p tcp -m state --state NEW -m tcp --dport 22 -j LANONLY
+-A SERVICES -p udp -m state --state NEW -m udp --sport 67:68 --dport 67:68 -j ACCEPT
+-A SERVICES -j RETURN
+COMMIT
