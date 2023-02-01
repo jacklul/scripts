@@ -235,7 +235,7 @@ is_number()
     if [[ $1 =~ $re ]] ; then
         return 0
     fi
-    
+
     return 1
 }
 
