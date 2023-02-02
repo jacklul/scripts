@@ -13,7 +13,7 @@ VERSION_CHECK_LATEST=$([ -f "${VERSION_CHECK_CACHE}" ] && cat ${VERSION_CHECK_CA
 if [ ! -f "${VERSION_CHECK_CACHE}" ] || [[ $(find "${VERSION_CHECK_CACHE}" -mmin +${VERSION_CHECK_INTERVAL} -print) ]]; then
     [ "${QUIET}" = "false" ] && echo "[Info] Checking for telegram-notify update..."
 
-    VERSION_CHECK_REMOTE_SCRIPT=`wget -q -T 10 O- ${VERSION_CHECK_URL}`
+    VERSION_CHECK_REMOTE_SCRIPT=`wget -q -T 10 -O - "${VERSION_CHECK_URL}"`
     VERSION_CHECK_LATEST=$(echo ${VERSION_CHECK_REMOTE_SCRIPT} | sed -n "/Revision history/,/# --/p" | head -n-1 | tail -n+2 | tail -1 | awk '{print $3}')
 
     if [ "${VERSION_CHECK_LATEST}" != "" ]; then
