@@ -33,7 +33,7 @@ OLDSTATE=`cat "$STATEFILE"`
 CURRENT=$(pihole -v -c | awk '{print $5}' | sed 's/\.$//g')
 STATE=$(pihole -v -l | awk '{print $5}')
 
-if echo $STATE | grep -q "Invalid Option\|\-v" ; then
+if echo $STATE | grep -q "Invalid Option\|\-v\|N\/A" ; then
 	echo 'Invalid output - unable to parse'
 	exit 1
 fi
