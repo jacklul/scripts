@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStartPre=/bin/bash -c "echo -e \"$(systemctl status --full %i)\" > /var/log/%i-failure.txt && echo \"\" >> /var/log/%i-failure.txt && echo -e \"$(journa$
+ExecStartPre=/bin/bash -c "echo -e \"$(systemctl status --full %i)\" > /var/log/%i-failure.txt && echo \"\" >> /var/log/%i-failure.txt && echo -e \"$(journalctl _SYSTEMD_INVOCATION_ID=`systemctl show -p InvocationID --value %i`)\" >> /var/log/%i-failure.txt"
 ExecStart=/usr/local/bin/telegram-notify --error --text "Service '%i' failed @ %H" --document /var/log/%i-failure.txt --protect
 ExecStopPost=-/bin/rm -f /var/log/%i-failure.txt
 Restart=on-failure
