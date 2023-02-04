@@ -40,6 +40,7 @@ See [miap-controller.conf.example](miap-controller.conf.example) for an example 
 | `DEVICE_TOKEN` | `null` | Device token (when required) |
 | `TIMEZONE` | `UTC` | Timezone to use - [list of supported values](https://www.php.net/manual/en/timezones.php) |
 | `DEBUG` | `false` | Print more information |
+| `QUIET` | `false` | Print less information |
 | `LOG_FILE` | `null` | Log to file |
 | `CONSOLE_LOG_DATE` | `false` | Log current date and time to console output |
 | `CONNECT_RETRY` | `60` | How long to wait before retrying connection |

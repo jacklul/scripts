@@ -61,6 +61,7 @@ final class MIAPController
     private $config = [
         'DEBUG'                 => false,   // Will output debug information
         'TEST'                  => false,   // Will read from device but will not perform any actions (instead will fake them)
+        'QUIET'                 => false,   // Do not show unnecessary messages
         'DEVICE_IP'             => null,    // Required: device's IP address
         'DEVICE_TOKEN'          => null,    // Required: device's token
         'TIMEZONE'              => 'UTC',   // Required: timezone to use
@@ -397,7 +398,7 @@ final class MIAPController
      */
     public function run(): void
     {
-        !$this->config['CONSOLE_LOG_DATE'] && $this->printAndLog('Start time: ' . ((new DateTime('now'))->format('Y-m-d H:i:s')));
+        ($this->config['CONSOLE_LOG_DATE'] === true || $this->config['QUIET'] === false) && $this->printAndLog('Start time: ' . ((new DateTime('now'))->format('Y-m-d H:i:s')));
 
         $lastAqiCheck = 0;
         $lastStatsSave = !empty($this->config['DBFILE']) ? time() : null;
@@ -414,10 +415,12 @@ final class MIAPController
                 
                 $status = $this->sendCommand($this->command);
 
-                if ($status) {
-                    $this->printAndLog('Successfully executed command \'' . $this->command . '\'!', 'INFO');
-                } else {
-                    $this->printAndLog('Failed to execute command \'' . $this->command . '\'!', 'INFO');
+                if ($this->config['QUIET'] === false) {
+                    if ($status) {
+                        $this->printAndLog('Successfully executed command \'' . $this->command . '\'!', 'INFO');
+                    } else {
+                        $this->printAndLog('Failed to execute command \'' . $this->command . '\'!', 'INFO');
+                    }
                 }
 
                 exit;
@@ -466,7 +469,7 @@ final class MIAPController
                 $lastAqiCheck = time();
 
                 if (!empty($properties += $this->getProperties(['power', 'mode', 'aqi']))) {
-                    $this->printAndLog('AQI value is ' . $properties['aqi']);
+                    $this->config['QUIET'] === false && $this->printAndLog('AQI value is ' . $properties['aqi']);
 
                     $this->stats[] = [
                         'aqi' => $properties['aqi'],
@@ -550,10 +553,12 @@ final class MIAPController
 
         $status = false;
         while (!$status) {
-            if ($reconnect) {
-                $this->printAndLog('Reconnecting...');
-            } else {
-                $this->printAndLog('Connecting...');
+            if ($this->config['QUIET'] === false) {
+                if ($reconnect) {
+                    $this->printAndLog('Reconnecting...');
+                } else {
+                    $this->printAndLog('Connecting...');
+                }
             }
 
             $result = $this->queryDevice(MiIO::INFO);
@@ -582,7 +587,7 @@ final class MIAPController
             }
 
             if (!$status) {
-                $this->printAndLog('Will retry in ' . $this->config['CONNECT_RETRY'] . ' seconds...');
+                $this->config['QUIET'] === false && $this->printAndLog('Will retry in ' . $this->config['CONNECT_RETRY'] . ' seconds...');
                 sleep((int)$this->config['CONNECT_RETRY']);
             }
         }
@@ -983,7 +988,7 @@ final class MIAPController
                 }
             }
 
-            if ($inserted > 0) {
+            if ($inserted > 0 && $this->config['QUIET'] === false) {
                 $this->printAndLog('Inserted ' . $inserted . ' new record(s) to the database', 'INFO');
             }
 
@@ -1003,13 +1008,13 @@ final class MIAPController
             if ($sth->execute()) {
                 $this->printAndLog('Affected row count: ' . $sth->rowCount(), 'DEBUG');
 
-                if ($sth->rowCount() > 0) {
+                if ($sth->rowCount() > 0 && $this->config['QUIET'] === false) {
                     $this->printAndLog('Cleaned up ' . $sth->rowCount() . ' old record(s) from the database', 'INFO');
                 }
             }
             
             if (filesize($this->config['DBFILE']) > $this->config['DBMAXSIZE']) {
-                $this->printAndLog('Database size exceeded ' . $this->config['DBMAXSIZE'] . ' bytes, performing cleanup...', 'INFO');
+                $this->config['QUIET'] === false && $this->printAndLog('Database size exceeded ' . $this->config['DBMAXSIZE'] . ' bytes, performing cleanup...', 'INFO');
 
                 $started = time();
                 $removed = 0;
@@ -1032,7 +1037,7 @@ final class MIAPController
                     }
                 } while (filesize($this->config['DBFILE']) > $this->config['DBMAXSIZE'] && $started + 10 > time());
                 
-                if ($removed > 0) {
+                if ($removed > 0 && $this->config['QUIET'] === false) {
                     $this->printAndLog('Removed ' . $removed . ' oldest record(s) from the database', 'INFO');
                 }
             } else {
