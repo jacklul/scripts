@@ -415,12 +415,10 @@ final class MIAPController
                 
                 $status = $this->sendCommand($this->command);
 
-                if ($this->config['QUIET'] === false) {
-                    if ($status) {
-                        $this->printAndLog('Successfully executed command \'' . $this->command . '\'!', 'INFO');
-                    } else {
-                        $this->printAndLog('Failed to execute command \'' . $this->command . '\'!', 'INFO');
-                    }
+                if ($status) {
+                    $this->printAndLog('Successfully executed command \'' . $this->command . '\'!', 'INFO');
+                } else {
+                    $this->printAndLog('Failed to execute command \'' . $this->command . '\'!', 'INFO');
                 }
 
                 exit;
