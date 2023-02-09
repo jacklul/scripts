@@ -6,6 +6,12 @@
 # Override apt-daily.service:
 #  [Service]
 #  ExecStartPost=/opt/helpers/apt-update-notify.sh
+#
+# To automatically clean the state once packages are updated:
+#  sudo nano /etc/apt/apt.conf.d/90update-notify
+#  ----------------------------------------------------------------------
+#  DPkg::Post-Invoke {"/opt/helpers/apt-update-notify.sh postdpkg";};
+#  ----------------------------------------------------------------------
 
 STATEFILE=/var/lib/apt/update-notify.state
 
@@ -20,6 +26,32 @@ fi
 
 if [ ! -f "$STATEFILE" ] ; then
 	echo "" > "$STATEFILE"
+fi
+
+if [ "$1" == "postdpkg" ]; then
+	if [ -s "$STATEFILE" ]; then
+		readarray -t STATEARRAY < $STATEFILE
+
+		ALLUPDATED=true
+		for i in "${STATEARRAY[@]}"
+		do
+			:
+			PACKAGE=$(echo $i | awk -F'/' '{print $1}')
+			NEWVERSION=$(echo $i | awk '{print $2}')
+			CURVERSION=$(dpkg -s $PACKAGE | grep '^Version:' | awk '{print $2}')
+
+			if [ "$NEWVERSION" != "$CURVERSION" ]; then
+				ALLUPDATED=false
+				break
+			fi
+		done
+
+		if [ "$ALLUPDATED" == "true" ]; then
+			echo "" > "$STATEFILE"
+		fi
+	fi
+	
+	exit
 fi
 
 OLDSTATE=`cat "$STATEFILE"`
