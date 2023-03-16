@@ -143,6 +143,8 @@ final class HttpClient
             $this->setopt(CURLOPT_HTTPHEADER, $options['headers']);
         }
 
+        $this->setopt(CURLOPT_COOKIESESSION, true);
+
         if (isset($options['cookies'])) {
             $this->setopt(CURLOPT_COOKIEJAR, $options['cookies']);
             $this->setopt(CURLOPT_COOKIEFILE, $options['cookies']);
@@ -153,7 +155,7 @@ final class HttpClient
                 $cookies[] = "$key=$value";
             }
 
-            $this->setopt(CURLOPT_COOKIE, implode("; ", $cookies));
+            $this->setopt(CURLOPT_COOKIE, implode('; ', $cookies));
         }
 
         $response = new HttpResponse($exec = $this->exec(), $this->getinfo(CURLINFO_HEADER_SIZE));
@@ -195,6 +197,11 @@ final class HttpResponse
     private $headers;
 
     /**
+     * @var string
+     */
+    private $raw_headers;
+
+    /**
      * @var int
      */
     private $status_code;
@@ -208,13 +215,19 @@ final class HttpResponse
         $this->raw_response = $response;
 
         foreach (explode("\r\n", substr($response, 0, $header_size)) as $i => $line) {
+            $this->raw_headers .= $line . "\r\n";
+            
             if ($i === 0 && preg_match('/(\d{3})/', $line, $matches)) {
                 $this->headers['status'] = $line;
                 $this->status_code       = (int) $matches[1];
             } elseif (!empty($line)) {
                 list($key, $value) = explode(': ', $line);
 
-                $this->headers[$key] = $value;
+                if (!isset($this->headers[$key])) {
+                    $this->headers[$key] = $value;
+                } else {
+                    $this->headers[$key] .= ', ' . $value;
+                }
             }
         }
 
@@ -268,13 +281,7 @@ final class HttpResponse
      */
     public function getRawHeaders(): string
     {
-        $headers = '';
-
-        foreach ($this->headers as $header => $value) {
-            $headers .= $header . ': ' . $value . PHP_EOL;
-        }
-
-        return $headers;
+        return $this->raw_headers;
     }
 }
 
