@@ -1,4 +1,4 @@
-# updatenotifier
+# updatenotifier (abandoned)
 
 Extremely simple update notifier for various stuff.
 
