@@ -149,7 +149,7 @@ chain_exists() {
     local CMD=$1
     local CHAIN=$2
 
-    if $CMD -L "$CHAIN" > /dev/null 2>&1 ; then
+    if $CMD -L "$CHAIN" > /dev/null 2>&1; then
         return 0
     fi
 
@@ -233,7 +233,7 @@ network()
 is_number()
 {
     local re='^[0-9]+$'
-    if [[ $1 =~ $re ]] ; then
+    if [[ $1 =~ $re ]]; then
         return 0
     fi
 
