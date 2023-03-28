@@ -22,10 +22,10 @@ function restartDNS() {
 
 [ "$UID" -eq 0 ] || { echo "This script must run as root!"; exit 1; }
 
-LOCKFILE=/var/lock/$(basename $0)
+LOCKFILE=/var/lock/$(basename "$0")
 LOCKPID=$(cat "$LOCKFILE" 2> /dev/null || echo '')
 
-if [ -e "$LOCKFILE" ] && [ ! -z "$LOCKPID" ] && kill -0 $LOCKPID > /dev/null 2>&1; then
+if [ -e "$LOCKFILE" ] && [ -n "$LOCKPID" ] && kill -0 "$LOCKPID" > /dev/null 2>&1; then
     echo "Script is already running!"
     exit 6
 fi
@@ -39,10 +39,10 @@ trap onInterruptOrExit EXIT
 
 function echoLog() {
 	if [ "$LOG_FILE" != "" ]; then
-		echo [`date +"%Y-%m-%d %H:%M:%S %Z"`] $* >> "$LOG_FILE"
+		echo ["$(date +"%Y-%m-%d %H:%M:%S %Z")"] "$@" >> "$LOG_FILE"
 	fi
 
-	echo $*
+	echo "$@"
 }
 
 function getPid() {
@@ -50,7 +50,7 @@ function getPid() {
 	#PID=`ps axf | grep /usr/bin/pihole-FTL | grep -v "grep\|systemctl\|sh -c" | awk '{print $1}'`
 	#PID=`pidof /usr/bin/pihole-FTL`
 	if test -f "/var/run/pihole-FTL.pid"; then
-		PID=`cat /var/run/pihole-FTL.pid`
+		PID=$(cat /var/run/pihole-FTL.pid)
 	fi
 }
 

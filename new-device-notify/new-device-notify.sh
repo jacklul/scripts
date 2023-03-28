@@ -10,14 +10,15 @@ LOG_FILE=/var/log/new-device-notify.log
 SCAN_SUBNETS=--localnet
 NOTIFICATION_COMMAND=
 RUN_AS_DAEMON=false
-LOCKFILE=/var/lock/$(basename $0)
+LOCKFILE=/var/lock/$(basename "$0")
 
 if [ -f "${CONFIG_FILE}" ]; then
-	. ${CONFIG_FILE}
+	#shellcheck disable=SC1090
+	. "${CONFIG_FILE}"
 fi
 
 LOCKPID=$(cat "$LOCKFILE" 2> /dev/null || echo '')
-if [ -e "$LOCKFILE" ] && [ ! -z "$LOCKPID" ] && kill -0 $LOCKPID > /dev/null 2>&1; then
+if [ -e "$LOCKFILE" ] && [ -n "$LOCKPID" ] && kill -0 "$LOCKPID" > /dev/null 2>&1; then
     echo "Script is already running!"
     exit 6
 fi
@@ -34,15 +35,15 @@ command -v arp-scan >/dev/null 2>&1 || echo "Command 'arp-scan' is missing!";
 
 if [ ! -d "$(dirname $KNOWN_DEVICES_FILE)" ]
 then
-    mkdir $(dirname $KNOWN_DEVICES_FILE)
+    mkdir "$(dirname $KNOWN_DEVICES_FILE)"
 fi
 
 function echoLog() {
 	if [ "$LOG_FILE" != "" ]; then
-		echo [`date +"%Y-%m-%d %H:%M:%S"`] $* >> "$LOG_FILE"
+		echo ["$(date +"%Y-%m-%d %H:%M:%S")"] "$@" >> "$LOG_FILE"
 	fi
 
-	echo $*
+	echo "$@"
 }
 
 function getDevices() {
@@ -54,8 +55,9 @@ function getDevices() {
 	fi
 
 	if [ -f "$PIHOLE_FTL_DB" ]; then
-		DEVICES_PIHOLE=`sqlite3 $PIHOLE_FTL_DB "SELECT hwaddr FROM network WHERE hwaddr != '00:00:00:00:00:00'"`
+		DEVICES_PIHOLE=$(sqlite3 $PIHOLE_FTL_DB "SELECT hwaddr FROM network WHERE hwaddr != '00:00:00:00:00:00'")
 		
+		#shellcheck disable=SC2181
 		if [ $? -eq 0 ]; then
 			if [ "$DEVICES" != "" ]; then
 				DEVICES+=$'\n'
@@ -68,8 +70,9 @@ function getDevices() {
 	fi
 	
 	if command -v arp-scan >/dev/null 2>&1; then
-		DEVICES_ARPSCAN=`arp-scan --ignoredups --retry 3 --quiet $SCAN_SUBNETS | awk '/.*:.*:.*:.*:.*:.*/{print $2}'`
+		DEVICES_ARPSCAN=$(arp-scan --ignoredups --retry 3 --quiet $SCAN_SUBNETS | awk '/.*:.*:.*:.*:.*:.*/{print $2}')
 		
+		#shellcheck disable=SC2181
 		if [ $? -eq 0 ]; then
 			if [ "$DEVICES" != "" ]; then
 				DEVICES+=$'\n'
@@ -88,7 +91,7 @@ function getDevices() {
 	
 	if [ "$KNOWN_DEVICES_FILE" != "" ] && [ ! -f "$KNOWN_DEVICES_FILE" ]; then
 		echo -e "$DEVICES" > "$KNOWN_DEVICES_FILE"
-		echo "Saved initial devices list to '$KNOWN_DEVICES_FILE': $(echo $DEVICES)"
+		echo "Saved initial devices list to '$KNOWN_DEVICES_FILE': $DEVICES"
 	fi
 }
 
@@ -98,13 +101,14 @@ function getDeviceInfo() {
 	DEVICE_IP=
 	DEVICE_MACVENDOR=
 	DEVICE_NAME=
-	DEVICE_TIMESTAMP=
+	#DEVICE_TIMESTAMP=
 	DEVICE_DATE=
 
 	if [ -f "$PIHOLE_FTL_DB" ]; then
-		DEVICE_INFO=`sqlite3 $PIHOLE_FTL_DB "SELECT hwaddr, interface, ip, macVendor, name, firstSeen FROM network LEFT JOIN network_addresses ON network.id = network_addresses.network_id WHERE hwaddr = '$1'"`
+		DEVICE_INFO=$(sqlite3 $PIHOLE_FTL_DB "SELECT hwaddr, interface, ip, macVendor, name, firstSeen FROM network LEFT JOIN network_addresses ON network.id = network_addresses.network_id WHERE hwaddr = '$1'")
 		
-		if [ $? == 0 ]; then
+		#shellcheck disable=SC2181
+		if [ $? -eq 0 ]; then
 			IFS='|'
 			i=0
 
@@ -120,7 +124,7 @@ function getDeviceInfo() {
 				elif [ "$i" == "5" ]; then
 					DEVICE_NAME=$line_info
 				elif [ "$i" == "6" ]; then
-					DEVICE_TIMESTAMP=$line_info
+					#DEVICE_TIMESTAMP=$line_info
 					DEVICE_DATE=$(date -d "@$line_info" +"%Y-%m-%d %H:%M:%S %Z")
 				fi
 
@@ -129,13 +133,13 @@ function getDeviceInfo() {
 		fi
 	fi
 
-	if [[ $mac_address == ??:??:??:??:??:?? ]]; then
+	if [[ $DEVICE_HWADDR == ??:??:??:??:??:?? ]]; then
 		if command -v arp-scan >/dev/null 2>&1 && [ "$DEVICE_INFO" == "" ] ; then
-			DEVICE_INFO=`arp-scan --localnet --ignoredups --quiet --destaddr=$1`
-			DEVICE_INTERFACE=$(echo $DEVICE_INFO | sed -e 's/.*Interface: \(.*\),.*/\1/' | head -1)
-			DEVICE_IP=$(echo $DEVICE_INFO | grep "$1" | awk -F' ' '{print $1}')
-			DEVICE_MACVENDOR=$(echo $DEVICE_INFO | grep "$1" | awk -F' ' '{print $3}')
-			DEVICE_NAME=$(host $DEVICE_IP | sed -n "s/^.*pointer \(.*\).$/\1/p")
+			DEVICE_INFO=$(arp-scan --localnet --ignoredups --quiet --destaddr="$1")
+			DEVICE_INTERFACE=$(echo "$DEVICE_INFO"| sed -e 's/.*Interface: \(.*\),.*/\1/' | head -1)
+			DEVICE_IP=$(echo "$DEVICE_INFO" | grep "$1" | awk -F' ' '{print $1}')
+			DEVICE_MACVENDOR=$(echo "$DEVICE_INFO" | grep "$1" | awk -F' ' '{print $3}')
+			DEVICE_NAME=$(host "$DEVICE_IP" | sed -n "s/^.*pointer \(.*\).$/\1/p")
 			DEVICE_DATE=$(date +"%Y-%m-%d %H:%M:%S %Z")
 		fi
 	fi
@@ -169,7 +173,7 @@ while true ; do
 		#echo "DEVICES:"
 		#echo "$DEVICES"
 	
-		DIFF=`diff <(echo "$DEVICES_PREVIOUS") <(echo "$DEVICES") | grep "^>" | sed -e 's/> //'`
+		DIFF=$(diff <(echo "$DEVICES_PREVIOUS") <(echo "$DEVICES") | grep "^>" | sed -e 's/> //')
 		DEVICES_PREVIOUS_NEW=$DEVICES_PREVIOUS
 		DEVICES_PREVIOUS_NEW+=$'\n'"$DIFF"
 		DEVICES_PREVIOUS_NEW=$(echo "$DEVICES_PREVIOUS_NEW" | sed '/^[[:space:]]*$/d' | sort)
@@ -189,8 +193,8 @@ while true ; do
 		
 		if [ "$DIFF" != "" ]; then
 			j=0
-			for line_diff in $(echo "$DIFF"); do
-				getDeviceInfo $line_diff
+			for line_diff in $DIFF; do
+				getDeviceInfo "$line_diff"
 				
 				if [ "$DEVICE_INFO" == "" ]; then
 					echoLog "Failed to get informations about device: $line_diff"

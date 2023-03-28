@@ -2,8 +2,8 @@
 # Made by Jack'lul <jacklul.github.io>
 
 SELF=$0
-if [ "$(dirname $0)" == "/usr/local/sbin" ]; then
-	SELF=$(basename $0)
+if [ "$(dirname "$0")" == "/usr/local/sbin" ]; then
+	SELF=$(basename "$0")
 fi
 
 set -e
@@ -13,7 +13,7 @@ function generateKeys() {
 	echo "Generating keys..."
 		
 	PRIVATE_KEY=$(wg genkey)
-	PUBLIC_KEY=$(echo $PRIVATE_KEY | wg pubkey)
+	PUBLIC_KEY=$(echo "$PRIVATE_KEY" | wg pubkey)
 	PSK_KEY=$(wg genpsk)
 
 	echo -e " Private key:\t $PRIVATE_KEY"
@@ -116,7 +116,7 @@ function substituteVariables() {
 }
 
 function getPeerInfo() {
-	PEER=$(cat "$WGPATH/$1-peers.conf" | sed -n -e "/# peer\-$2 START/,/# peer\-$2 END/ p")
+	PEER=$(sed -n -e "/# peer\-$2 START/,/# peer\-$2 END/ p" < "$WGPATH/$1-peers.conf")
 
 	PRIVATE_KEY=$(echo "$PEER" | grep "PrivateKey" | cut -d "=" -f2- | xargs)
 	PEER_IP_ADDRESS=$(echo "$PEER" | grep "AllowedIPs" | cut -d "=" -f2- | cut -d "/" -f1 | xargs)
@@ -128,10 +128,11 @@ function getNextIPAddress() {
 		echo "Interface not provided!"
 		exit 1
 	fi
-	
-	SERVER_IP_ADDRESS=$(cat "$WGPATH/$1.conf" | grep "Address" | cut -d "=" -f2 | cut -d "/" -f1 | xargs)
-	SERVER_IP_BASE=$(echo $SERVER_IP_ADDRESS | rev | cut -d"." -f2- | rev).
-	PEERS_IPS=$(cat "$WGPATH/$1-peers.conf" | grep "$SERVER_IP_BASE" | grep "AllowedIPs" | cut -d "=" -f2 | cut -d "/" -f1 | awk '{$1=$1;print}')
+
+	SERVER_IP_ADDRESS=$(grep "Address" < "$WGPATH/$1.conf" | cut -d "=" -f2 | cut -d "/" -f1 | xargs)
+	SERVER_IP_BASE=$(echo "$SERVER_IP_ADDRESS" | rev | cut -d"." -f2- | rev).
+	PEERS_IPS=$(grep "$SERVER_IP_BASE" < "$WGPATH/$1-peers.conf" | grep "AllowedIPs" | cut -d "=" -f2 | cut -d "/" -f1 | awk '{$1=$1;print}')
+	#shellcheck disable=SC2001
 	PEERS_IPS_PARTS=$(echo "$PEERS_IPS" | sed "s/$SERVER_IP_BASE//")
 	
 	if [ "$PEERS_IPS" == "" ]; then
@@ -141,7 +142,7 @@ function getNextIPAddress() {
 	
 	# Find first available IP
 	for i in $(seq 2 254); do 
-		for line in $(echo "$PEERS_IPS_PARTS"); do
+		for line in $PEERS_IPS_PARTS; do
 			if [ "$i" == "$line" ]; then
 				continue 2
 			fi
@@ -150,7 +151,7 @@ function getNextIPAddress() {
 		PEER_IP_ADDRESS=$SERVER_IP_BASE$i
 		break 2
 	done
-	
+
 	if [ "$PEER_IP_ADDRESS" == "" ]; then
 		echo "Failed to assign IP address!"
 		exit 1
@@ -163,7 +164,7 @@ function reloadInterface() {
 		exit 1
 	fi
 	
-	printf "Reloading WireGuard interface $1..."
+	echo "Reloading WireGuard interface %s..." "$1"
 	wg syncconf "$1" <(wg-quick strip "$1")
 	STATUS_1=$?
 	
@@ -171,8 +172,9 @@ function reloadInterface() {
 	STATUS_2=$?
 	
 	wg addconf "$1" "$WGPATH/$1-peers.conf"
+	STATUS_3=$?
 	
-	if [ $STATUS_1 -eq 0 ] && [ $STATUS_2 -eq 0 ] && [ $? -eq 0 ]; then
+	if [ $STATUS_1 -eq 0 ] && [ $STATUS_2 -eq 0 ] && [ $STATUS_3 -eq 0 ]; then
 		echo " ok"
 	else
 		echo -e " failed\nYou might have to reload the service manually."
@@ -185,11 +187,10 @@ function restartInterface() {
 		exit 1
 	fi
 	
-	printf "Restarting WireGuard interface $1..."
+	printf "Restarting WireGuard interface %s..." "$1"
 	
-	systemctl restart wg-quick@$1
-	
-	if [ $? -eq 0 ]; then
+	#shellcheck disable=SC2086
+	if systemctl restart wg-quick@$1; then
 		echo " ok"
 	else
 		echo -e " failed\nYou might have to restart the service manually."
@@ -216,11 +217,11 @@ else
 		fi
 	
 		# Extract peers information for peers file
-		PEERS=$(cat "$WGPATH/$2-peers.conf" | grep "^# peer-.* START" | sed -e 's/^.*peer\-\(.*\)START/\1/')
+		PEERS=$(grep "^# peer-.* START" < "$WGPATH/$2-peers.conf" | sed -e 's/^.*peer\-\(.*\)START/\1/')
 
 		echo "List of peers for interface '$2':"
 		
-		for line in $(echo "$PEERS"); do
+		for line in $PEERS; do
 			echo " $line"
 		done
 	elif [ "$1" == "show" ]; then
@@ -291,7 +292,7 @@ EOT
 		reloadInterface "$2"
 		
 		echo
-		$SELF show $2 $3
+		$SELF show "$2" "$3"
 	elif [ "$1" == "remove" ]; then
 		checkForRequiredFiles "$2"
 		checkForRequiredPeerName "$2" "$3" remove

@@ -36,6 +36,7 @@ function extend (){
   echo "$str"
 }
 
+#shellcheck disable=SC1073,SC1036,SC1056,SC1072,SC1009
 function center (){
   local str="$1"
   let spacesLeft=(78-${#1})/2

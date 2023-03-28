@@ -5,16 +5,16 @@ if [ "$UID" -eq 0 ]; then
 	exit
 fi
 
-SPATH=$(dirname $0)
+SPATH=$(dirname "$0")
 set -e
 
 if [ -f "$SPATH/showRSS.php" ] && [ -f "$SPATH/showRSS.service" ] && [ -f "$SPATH/showRSS.timer" ]; then
 	mkdir -pv ~/.local/bin
-	cp -v $SPATH/showRSS.php ~/.local/bin/showRSS && chmod 755 ~/.local/bin/showRSS
+	cp -v "$SPATH/showRSS.php" ~/.local/bin/showRSS && chmod 755 ~/.local/bin/showRSS
 	
 	mkdir -pv ~/.config/systemd/user/
-	cp -v $SPATH/showRSS.service ~/.config/systemd/user/ && chmod 644 ~/.config/systemd/user/showRSS.service
-	cp -v $SPATH/showRSS.timer ~/.config/systemd/user/ && chmod 644 ~/.config/systemd/user/showRSS.timer
+	cp -v "$SPATH/showRSS.service" ~/.config/systemd/user/ && chmod 644 ~/.config/systemd/user/showRSS.service
+	cp -v "$SPATH/showRSS.timer" ~/.config/systemd/user/ && chmod 644 ~/.config/systemd/user/showRSS.timer
 	
 	command -v dos2unix >/dev/null 2>&1 && dos2unix ~/.local/bin/showRSS
 	

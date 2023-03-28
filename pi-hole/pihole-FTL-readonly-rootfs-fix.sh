@@ -11,7 +11,7 @@
 #  ExecStop=/opt/helpers/pihole-FTL-readonly-rootfs-fix.sh stop
 
 if [ "$1" = "start" ]; then
-	if ! mount | grep /usr/bin/pihole-FTL > /dev/null && [ $(mount | sed -n -e "s/^\/dev\/.* on \/ .*(\(r[w|o]\).*/\1/p") = "ro" ]; then
+	if ! mount | grep /usr/bin/pihole-FTL > /dev/null && [ "$(mount | sed -n -e "s/^\/dev\/.* on \/ .*(\(r[w|o]\).*/\1/p")" = "ro" ]; then
 		echo "Read only rootfs detected, copying and binding pihole-FTL binary..."
 
 		mkdir -pv /mnt/pihole-FTL && mount tmpfs -v -t tmpfs -o mode=644,size=$(($(wc -c < /usr/bin/pihole-FTL || echo 100M)+1000000)) /mnt/pihole-FTL

@@ -5,16 +5,16 @@ if [ "$UID" -eq 0 ]; then
 	exit
 fi
 
-SPATH=$(dirname $0)
+SPATH=$(dirname "$0")
 set -e
 
 if [ -f "$SPATH/fmovies-watchlist.php" ] && [ -f "$SPATH/fmovies-watchlist.service" ] && [ -f "$SPATH/fmovies-watchlist.timer" ]; then
 	mkdir -pv ~/.local/bin
-	cp -v $SPATH/fmovies-watchlist.php ~/.local/bin/fmovies-watchlist && chmod 755 ~/.local/bin/fmovies-watchlist
+	cp -v "$SPATH/fmovies-watchlist.php" ~/.local/bin/fmovies-watchlist && chmod 755 ~/.local/bin/fmovies-watchlist
 
 	mkdir -pv ~/.config/systemd/user/
-	cp -v $SPATH/fmovies-watchlist.service ~/.config/systemd/user/ && chmod 644 ~/.config/systemd/user/fmovies-watchlist.service
-	cp -v $SPATH/fmovies-watchlist.timer ~/.config/systemd/user/ && chmod 644 ~/.config/systemd/user/fmovies-watchlist.timer
+	cp -v "$SPATH/fmovies-watchlist.service" ~/.config/systemd/user/ && chmod 644 ~/.config/systemd/user/fmovies-watchlist.service
+	cp -v "$SPATH/fmovies-watchlist.timer" ~/.config/systemd/user/ && chmod 644 ~/.config/systemd/user/fmovies-watchlist.timer
 
 	command -v dos2unix >/dev/null 2>&1 && dos2unix ~/.local/bin/fmovies-watchlist
 

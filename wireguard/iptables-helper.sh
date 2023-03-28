@@ -46,11 +46,11 @@ rule() {
     local RULE=$3
     local RULERAW=$3
 
-    if is_number $RULE; then
+    if is_number "$RULE"; then
         if [ "$ACTION" == "up" ]; then
             LINE="$RULE"
-            RULE=$(echo $4 | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}')
-            LINE="$(echo $4 | awk '{print $1}') $LINE"
+            RULE=$(echo "$4" | awk '{for (i=2; i<NF; i++) printf $i " "; print $NF}')
+            LINE="$(echo "$4" | awk '{print $1}') $LINE"
             RULERAW=$4
         else
             RULE=$4
@@ -149,9 +149,7 @@ chain_exists() {
     local CMD=$1
     local CHAIN=$2
 
-    $CMD -L $CHAIN > /dev/null 2>&1
-
-    if [ "$?" == "0" ] ; then
+    if $CMD -L "$CHAIN" > /dev/null 2>&1 ; then
         return 0
     fi
 
@@ -162,7 +160,7 @@ is_chain_empty() {
     local CMD=$1
     local CHAIN=$2
 
-    COUNT=`$CMD -L $CHAIN 2>/dev/null | head -1 | awk '{print $3}' | awk -F '(' '{print $2}'`
+    COUNT=$($CMD -L "$CHAIN" 2>/dev/null | head -1 | awk '{print $3}' | awk -F '(' '{print $2}')
 
     if [ "$COUNT" == "0" ] ; then
         return 0
@@ -204,6 +202,7 @@ error() {
     fi
 }
 
+#shellcheck disable=SC2162,SC2086
 ip2int()
 {
     local a b c d
@@ -211,6 +210,7 @@ ip2int()
     echo $(((((((a << 8) | b) << 8) | c) << 8) | d))
 }
 
+#shellcheck disable=SC2034,SC2086
 int2ip()
 {
     local ui32=$1; shift
@@ -222,9 +222,10 @@ int2ip()
     echo $ip
 }
 
+#shellcheck disable=SC2155
 network()
 {
-    local addr=$(ip2int $1); shift
+    local addr=$(ip2int "$1"); shift
     local mask=$((0xffffffff << (32 -$1))); shift
     int2ip $((addr & mask))
 }
@@ -239,11 +240,12 @@ is_number()
     return 1
 }
 
+#shellcheck disable=SC2155
 # Look for "state RELATED,ESTABLISHED" and "state INVALID" rules at the beggining and return line number after those
 get_line_number_states() {
     local CMD=$1
-    local HAS_ACCEPT_STATE=`$CMD -L INPUT -nv --line-numbers | grep "state RELATED,ESTABLISHED" | awk '{print $1}' | head -1`
-    local HAS_INVALID_STATE=`$CMD -L INPUT -nv --line-numbers | grep "state INVALID" | awk '{print $1}' | head -1`
+    local HAS_ACCEPT_STATE=$($CMD -L INPUT -nv --line-numbers | grep "state RELATED,ESTABLISHED" | awk '{print $1}' | head -1)
+    local HAS_INVALID_STATE=$($CMD -L INPUT -nv --line-numbers | grep "state INVALID" | awk '{print $1}' | head -1)
     local LINE=1
 
     if [ "$HAS_ACCEPT_STATE" != "" ]; then
@@ -265,6 +267,7 @@ get_line_number_states() {
     return $LINE
 }
 
+#shellcheck disable=SC2155
 # Look for drop or reject rules at the end of the table and return line number before those
 get_line_number_end() {
     local CMD=$1
@@ -350,7 +353,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         ?|-h|--help)
-            echo "Usage: $(basename $0) ACTION [OPTIONS]"
+            echo "Usage: $(basename "$0") ACTION [OPTIONS]"
             echo "Actions: up, down"
             echo "Options:"
             echo " -i [IF], --in-interface [IF]   Incoming interface (WireGuard)"
@@ -370,7 +373,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             exit
             ;;
-        -*|--*)
+        -*)
             error "Unknown option: $1" "true"
             exit 1
             ;;
@@ -392,7 +395,7 @@ if [ "$LAN_ONLY" = "true" ] && [ "$DEVICE_ONLY" = "true" ]; then
     error "You cannot use --lan-only and --device-only together" "true"
 fi
 
-if ([ "$VERBOSE" = "true" ] || [ "$DEBUG" = "true" ]) && [ "$QUIET" = "true" ]; then
+if { [ "$VERBOSE" = "true" ] || [ "$DEBUG" = "true" ] ; } && [ "$QUIET" = "true" ]; then
     VERBOSE="false"
     DEBUG="false"
 fi
@@ -404,16 +407,16 @@ if [ "$TEST" = "true" ] && [ "$QUIET" != "true" ]; then
 fi
 
 # Check for action/mode (up/down)
-if [ "$(echo $1 | awk '{print tolower($0)}')" == "up" ]; then
+if [ "$(echo "$1" | awk '{print tolower($0)}')" == "up" ]; then
     ACTION="up"
-elif [ "$(echo $1 | awk '{print tolower($0)}')" == "down" ]; then
+elif [ "$(echo "$1" | awk '{print tolower($0)}')" == "down" ]; then
     ACTION="down"
 else
     if [ "$1" == "" ]; then
         echo "No action provided"
         echo ""
 
-        bash $0 --help
+        bash "$0" --help
     else
         echo "Unknown action: $1"
     fi
@@ -422,9 +425,9 @@ else
 fi
 
 # Grab data from the configuration file
-WG_CONF=`cat /etc/wireguard/$IN_INTERFACE.conf`
+WG_CONF=$(cat /etc/wireguard/"$IN_INTERFACE".conf)
 
-PORT_CONF=`echo "$WG_CONF" | grep -Po 'ListenPort\s?+=\s?+(\d+)' | grep -Po '\d+'`
+PORT_CONF=$(echo "$WG_CONF" | grep -Po 'ListenPort\s?+=\s?+(\d+)' | grep -Po '\d+')
 if [ "$PORT_CONF" != "" ]; then
     PORT=$PORT_CONF
 fi
@@ -443,13 +446,13 @@ if [ "$DEBUG" == "true" ]; then
 fi
 
 # Detect addresses and their netmasks
-INET=`ip -o -f inet addr show`
-IN_INET=`echo "$INET" | grep " $IN_INTERFACE " | grep "global" | awk '{print $4}'`
-OUT_INET=`echo "$INET" | grep " $OUT_INTERFACE " | grep "global" | awk '{print $4}'`
+INET=$(ip -o -f inet addr show)
+IN_INET=$(echo "$INET" | grep " $IN_INTERFACE " | grep "global" | awk '{print $4}')
+OUT_INET=$(echo "$INET" | grep " $OUT_INTERFACE " | grep "global" | awk '{print $4}')
 
 # If we can't find the interface we try reading the address from the config file
 if [ "$IN_INET" == "" ]; then
-    IN_INET_CONF=`echo "$WG_CONF" | grep "^Address" | grep -Po '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\/\d{1,2}'`
+    IN_INET_CONF=$(echo "$WG_CONF" | grep "^Address" | grep -Po '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\/\d{1,2}')
 
     if [ "$IN_INET_CONF" != "" ]; then
         IN_INET=$IN_INET_CONF
@@ -458,17 +461,17 @@ fi
 
 # IPv4
 if [ "$IN_INET" != "" ]; then
-    IN_ADDRESS=`echo $IN_INET | awk -F '\/' '{print $1}'`
-    IN_NETMASK=`echo $IN_INET | awk -F '\/' '{print $2}'`
-    IN_NETWORK=$(network $IN_ADDRESS $IN_NETMASK)
+    IN_ADDRESS=$(echo "$IN_INET" | awk -F '\/' '{print $1}')
+    IN_NETMASK=$(echo "$IN_INET" | awk -F '\/' '{print $2}')
+    IN_NETWORK=$(network "$IN_ADDRESS" "$IN_NETMASK")
 else
     error "Unable to obtain IPv4 address of interface $IN_INTERFACE" "true"
 fi
 
 if [ "$OUT_INET" != "" ]; then
-    OUT_ADDRESS=`echo $OUT_INET | awk -F '\/' '{print $1}'`
-    OUT_NETMASK=`echo $OUT_INET | awk -F '\/' '{print $2}'`
-    OUT_NETWORK=$(network $OUT_ADDRESS $OUT_NETMASK)
+    OUT_ADDRESS=$(echo "$OUT_INET" | awk -F '\/' '{print $1}')
+    OUT_NETMASK=$(echo "$OUT_INET" | awk -F '\/' '{print $2}')
+    OUT_NETWORK=$(network "$OUT_ADDRESS" "$OUT_NETMASK")
 else
     error "Unable to obtain IPv4 address of interface $OUT_INTERFACE" "true"
 fi
@@ -482,13 +485,13 @@ if [ "$IPV6" == "true" ]; then
     IN_IPV6="true"
     OUT_IPV6="true"
 
-    INET6=`ip -o -f inet6 addr show`
-    IN_INET6=`echo "$INET6" | grep " $IN_INTERFACE " | grep "global" | awk '{print $4}'`
-    OUT_INET6=`echo "$INET6" | grep " $OUT_INTERFACE " | grep "global" | awk '{print $4}'`
+    INET6=$(ip -o -f inet6 addr show)
+    IN_INET6=$(echo "$INET6" | grep " $IN_INTERFACE " | grep "global" | awk '{print $4}')
+    OUT_INET6=$(echo "$INET6" | grep " $OUT_INTERFACE " | grep "global" | awk '{print $4}')
 
     # If we can't find the interface we try reading the address from the config file
     if [ "$IN_INET6" == "" ]; then
-        IN_INET6_CONF=`echo "$WG_CONF" | grep "^Address" | grep -Po '[0-9a-fA-F]{1,4}:(?:[0-9a-fA-F]{0,4}:?){1,7}\/\d{1,3}'`
+        IN_INET6_CONF=$(echo "$WG_CONF" | grep "^Address" | grep -Po '[0-9a-fA-F]{1,4}:(?:[0-9a-fA-F]{0,4}:?){1,7}\/\d{1,3}')
 
         if [ "$IN_INET6_CONF" != "" ]; then
             IN_INET6=$IN_INET6_CONF
@@ -496,18 +499,18 @@ if [ "$IPV6" == "true" ]; then
     fi
 
     if [ "$IN_INET6" != "" ]; then
-        IN_ADDRESS6=`echo $IN_INET6 | awk -F '\/' '{print $1}'`
-        IN_NETMASK6=`echo $IN_INET6 | awk -F '\/' '{print $2}'`
-        IN_NETWORK6=`subnetcalc $IN_ADDRESS6/$IN_NETMASK6 -n | grep "Network" | awk '{print $3}'`
+        IN_ADDRESS6=$(echo "$IN_INET6" | awk -F '\/' '{print $1}')
+        IN_NETMASK6=$(echo "$IN_INET6" | awk -F '\/' '{print $2}')
+        IN_NETWORK6=$(subnetcalc "$IN_ADDRESS6"/"$IN_NETMASK6" -n | grep "Network" | awk '{print $3}')
     else
         IPV6="false"
         IN_IPV6="false"
     fi
 
     if [ "$OUT_INET6" != "" ]; then
-        OUT_ADDRESS6=`echo $OUT_INET6 | awk -F '\/' '{print $1}'`
-        OUT_NETMASK6=`echo $OUT_INET6 | awk -F '\/' '{print $2}'`
-        OUT_NETWORK6=`subnetcalc $OUT_ADDRESS6/$OUT_NETMASK6 -n | grep "Network" | awk '{print $3}'`
+        OUT_ADDRESS6=$(echo "$OUT_INET6" | awk -F '\/' '{print $1}')
+        OUT_NETMASK6=$(echo "$OUT_INET6" | awk -F '\/' '{print $2}')
+        OUT_NETWORK6=$(subnetcalc "$OUT_ADDRESS6"/"$OUT_NETMASK6" -n | grep "Network" | awk '{print $3}')
     else
         OUT_IPV6="false"
     fi
@@ -517,7 +520,7 @@ if [ "$IPV6" == "true" ]; then
     fi
 fi
 
-if ([ "$IN_INET_CONF" != "" ] || [ "$IN_INET_CONF" != "" ]); then
+if { [ "$IN_INET_CONF" != "" ] || [ "$IN_INET_CONF" != "" ] ; }; then
     error "Unable to find interface $IN_INTERFACE - reading from configuration file /etc/wireguard/$IN_INTERFACE.conf"
 fi
 
@@ -540,49 +543,49 @@ if [ "$DEBUG" == "true" ]; then
 fi
 
 # Get default firewall policies
-POLICIES=`iptables -S`
-POLICIES6=`ip6tables -S`
-INPUT_POLICY=`echo "$POLICIES" | grep "P INPUT " | awk '{print $3}'`
-INPUT_POLICY6=`echo "$POLICIES6" | grep "P INPUT " | awk '{print $3}'`
-FORWARD_POLICY=`echo "$POLICIES" | grep "P FORWARD " | awk '{print $3}'`
-FORWARD_POLICY6=`echo "$POLICIES6" | grep "P FORWARD " | awk '{print $3}'`
-OUTPUT_POLICY=`echo "$POLICIES" | grep "P OUTPUT " | awk '{print $3}'`
-OUTPUT_POLICY6=`echo "$POLICIES6" | grep "P OUTPUT " | awk '{print $3}'`
+POLICIES=$(iptables -S)
+POLICIES6=$(ip6tables -S)
+INPUT_POLICY=$(echo "$POLICIES" | grep "P INPUT " | awk '{print $3}')
+INPUT_POLICY6=$(echo "$POLICIES6" | grep "P INPUT " | awk '{print $3}')
+FORWARD_POLICY=$(echo "$POLICIES" | grep "P FORWARD " | awk '{print $3}')
+FORWARD_POLICY6=$(echo "$POLICIES6" | grep "P FORWARD " | awk '{print $3}')
+OUTPUT_POLICY=$(echo "$POLICIES" | grep "P OUTPUT " | awk '{print $3}')
+OUTPUT_POLICY6=$(echo "$POLICIES6" | grep "P OUTPUT " | awk '{print $3}')
 
 if [ "$OUTPUT_POLICY" != "ACCEPT" ] || [ "$OUTPUT_POLICY6" != "ACCEPT" ]; then
     error "Default OUTPUT policy is not set to ACCEPT - this is not supported by this script and you might run into issues"
 fi
 
 # Grab last chain line numbers
-LIST_INPUT=`iptables -L INPUT -nv --line-numbers`
-LIST_INPUT6=`ip6tables -L INPUT -nv --line-numbers`
-LIST_FORWARD=`iptables -L FORWARD -nv --line-numbers`
-LIST_FORWARD6=`ip6tables -L FORWARD -nv --line-numbers`
-INPUT_LASTLINE=`echo "$LIST_INPUT" | tail -1 | awk '{print $1}'`
-INPUT_LASTLINE6=`echo "$LIST_INPUT6" | tail -1 | awk '{print $1}'`
-FORWARD_LASTLINE=`echo "$LIST_FORWARD" | tail -1 | awk '{print $1}'`
-FORWARD_LASTLINE6=`echo "$LIST_FORWARD6" | tail -1 | awk '{print $1}'`
+LIST_INPUT=$(iptables -L INPUT -nv --line-numbers)
+LIST_INPUT6=$(ip6tables -L INPUT -nv --line-numbers)
+LIST_FORWARD=$(iptables -L FORWARD -nv --line-numbers)
+LIST_FORWARD6=$(ip6tables -L FORWARD -nv --line-numbers)
+INPUT_LASTLINE=$(echo "$LIST_INPUT" | tail -1 | awk '{print $1}')
+INPUT_LASTLINE6=$(echo "$LIST_INPUT6" | tail -1 | awk '{print $1}')
+FORWARD_LASTLINE=$(echo "$LIST_FORWARD" | tail -1 | awk '{print $1}')
+FORWARD_LASTLINE6=$(echo "$LIST_FORWARD6" | tail -1 | awk '{print $1}')
 
 # Some chains might be empty and above commands will produce "num" instead of number, correct that
-is_number $INPUT_LASTLINE || INPUT_LASTLINE=0
-is_number $INPUT_LASTLINE6 || INPUT_LASTLINE6=0
-is_number $FORWARD_LASTLINE || FORWARD_LASTLINE=0
-is_number $FORWARD_LASTLINE6 || FORWARD_LASTLINE6=0
+is_number "$INPUT_LASTLINE" || INPUT_LASTLINE=0
+is_number "$INPUT_LASTLINE6" || INPUT_LASTLINE6=0
+is_number "$FORWARD_LASTLINE" || FORWARD_LASTLINE=0
+is_number "$FORWARD_LASTLINE6" || FORWARD_LASTLINE6=0
 
 # Store incremented line numbers for later use
-INPUT_NEWLINE=$((INPUT_LASTLINE+1))
-INPUT_NEWLINE6=$((INPUT_LASTLINE6+1))
-FORWARD_NEWLINE=$((FORWARD_LASTLINE+1))
-FORWARD_NEWLINE6=$((FORWARD_LASTLINE6+1))
+#INPUT_NEWLINE=$((INPUT_LASTLINE+1))
+#INPUT_NEWLINE6=$((INPUT_LASTLINE6+1))
+#FORWARD_NEWLINE=$((FORWARD_LASTLINE+1))
+#FORWARD_NEWLINE6=$((FORWARD_LASTLINE6+1))
 
 # For later use
-IN_INTERFACE_UPPER=$(echo $IN_INTERFACE | tr '[:lower:]' '[:upper:]')
-OUT_INTERFACE_UPPER=$(echo $OUT_INTERFACE | tr '[:lower:]' '[:upper:]')
+IN_INTERFACE_UPPER=$(echo "$IN_INTERFACE" | tr '[:lower:]' '[:upper:]')
+#OUT_INTERFACE_UPPER=$(echo "$OUT_INTERFACE" | tr '[:lower:]' '[:upper:]')
 
 [ "$QUIET" != "true" ] && echo "Applying rules..."
 
 # Look for existing ACCEPT rule for server port
-CHECK_FOR_PORT_RULE=`iptables -L | grep :$PORT | grep ACCEPT`
+CHECK_FOR_PORT_RULE=$(iptables -L | grep :"$PORT" | grep ACCEPT)
 
 # Make sure server port is open, only add new rule if ACCEPT rule for the PORT does not exist
 if [ "$INPUT_POLICY" != "ACCEPT" ] && [ "$CHECK_FOR_PORT_RULE" == "" ]; then
@@ -603,7 +606,7 @@ if [ "$INPUT_POLICY" != "ACCEPT" ] && [ "$CHECK_FOR_PORT_RULE" == "" ]; then
 
     rule "$IPT" "-I" "$LINE" "INPUT -i $OUT_INTERFACE -p udp --dport $PORT -j ACCEPT"
 
-    CHECK_FOR_PORT_RULE6=`ip6tables -L | grep :$PORT | grep ACCEPT`
+    CHECK_FOR_PORT_RULE6=$(ip6tables -L | grep :"$PORT" | grep ACCEPT)
     if [ "$CHECK_FOR_PORT_RULE6" == "" ] && [ "$INPUT_POLICY6" != "ACCEPT" ] && [ "$IPV6" == "true" ]; then
         get_line_number_states "$IPT6"
         STATES_LINE=$?

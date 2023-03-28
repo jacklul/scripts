@@ -15,13 +15,13 @@
 
 STATEFILE=/var/lib/apt/update-notify.state
 
-if ([ -f "$STATEFILE" ] && [ ! -w "$STATEFILE" ]) || [ ! -w "$(dirname $STATEFILE)" ] ; then
+if [ -f "$STATEFILE" ] && [ ! -w "$STATEFILE" ] || [ ! -w "$(dirname $STATEFILE)" ] ; then
 	echo "Unable to obtain read-write access to $STATEFILE"
 	exit 1
 fi
 
 if [ ! -d "$(dirname $STATEFILE)" ] ; then
-	mkdir -p $(dirname $STATEFILE)
+	mkdir -p "$(dirname $STATEFILE)"
 fi
 
 if [ ! -f "$STATEFILE" ] ; then
@@ -36,9 +36,9 @@ if [ "$1" == "postdpkg" ]; then
 		for i in "${STATEARRAY[@]}"
 		do
 			:
-			PACKAGE=$(echo $i | awk -F'/' '{print $1}')
-			NEWVERSION=$(echo $i | awk '{print $2}')
-			CURVERSION=$(dpkg -s $PACKAGE | grep '^Version:' | awk '{print $2}')
+			PACKAGE=$(echo "$i" | awk -F'/' '{print $1}')
+			NEWVERSION=$(echo "$i" | awk '{print $2}')
+			CURVERSION=$(dpkg -s "$PACKAGE" | grep '^Version:' | awk '{print $2}')
 
 			if [ "$NEWVERSION" != "$CURVERSION" ]; then
 				ALLUPDATED=false
@@ -54,7 +54,7 @@ if [ "$1" == "postdpkg" ]; then
 	exit
 fi
 
-OLDSTATE=`cat "$STATEFILE"`
+OLDSTATE=$(cat "$STATEFILE")
 STATE=$(apt list --upgradable 2> /dev/null | awk '{if(NR>1)print}' | awk -F '\[upgradable from' '{print $1}' | awk '{print $1,$2}')
 
 if [ "$OLDSTATE" != "$STATE" ]; then

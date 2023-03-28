@@ -2,18 +2,19 @@
 
 [ "$UID" -eq 0 ] || exec sudo bash "$0" "$@"
 
-SPATH=$(dirname $0)
+SPATH=$(dirname "$0")
 
 set -e
 
 if [ -f "$SPATH/new-device-notify.sh" ] && [ -f "$SPATH/new-device-notify.service" ] && [ -f "$SPATH/new-device-notify.timer" ] && [ -f "$SPATH/new-device-notify.conf" ]; then
-	cp -v $SPATH/new-device-notify.sh /usr/local/sbin/new-device-notify && chmod 755 /usr/local/sbin/new-device-notify
-	cp -v $SPATH/new-device-notify.service /etc/systemd/system && chmod 644 /etc/systemd/system/new-device-notify.service
-	cp -v $SPATH/new-device-notify.timer /etc/systemd/system && chmod 644 /etc/systemd/system/new-device-notify.timer
+	cp -v "$SPATH/new-device-notify.sh" /usr/local/sbin/new-device-notify && chmod 755 /usr/local/sbin/new-device-notify
+	cp -v "$SPATH/new-device-notify.service" /etc/systemd/system && chmod 644 /etc/systemd/system/new-device-notify.service
+	cp -v "$SPATH/new-device-notify.timer" /etc/systemd/system && chmod 644 /etc/systemd/system/new-device-notify.timer
 	
 	if [ ! -f "/etc/new-device-notify.conf" ]; then
-		cp -v $SPATH/new-device-notify.conf /etc/new-device-notify.conf
+		cp -v "$SPATH/new-device-notify.conf" /etc/new-device-notify.conf
 	else
+		#shellcheck disable=SC1091
 		. "/etc/new-device-notify.conf"
 	fi
 
