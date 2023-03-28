@@ -156,16 +156,16 @@ chain_exists() {
     return 1
 }
 
-is_chain_empty() {
+is_chain_used() {
     local CMD=$1
     local CHAIN=$2
 
     COUNT=$($CMD -L "$CHAIN" 2>/dev/null | head -1 | awk '{print $3}' | awk -F '(' '{print $2}')
 
-    if [ "$COUNT" == "0" ] ; then
+    if [ "$COUNT" == "0" ] || [ "$COUNT" == "" ]; then
         return 0
     fi
-    
+
     return 1
 }
 
@@ -703,7 +703,7 @@ if [ "$SAMBA" == "true" ]; then
 
     rule "$IPT" "-A" "POSTROUTING -t nat -s $IN_NETWORK/$IN_NETMASK -o $OUT_INTERFACE -d $OUT_NETWORK/$OUT_NETMASK -j SAMBA_MASQUERADE"
 
-    if [ "$ACTION" == "down" ] && is_chain_empty "$IPT" "SAMBA_MASQUERADE -t nat"; then
+    if [ "$ACTION" == "down" ] && is_chain_used "$IPT" "SAMBA_MASQUERADE -t nat"; then
         remove_chain "$IPT" "SAMBA_MASQUERADE -t nat"
     fi
 
@@ -720,7 +720,7 @@ if [ "$SAMBA" == "true" ]; then
 
         rule "$IPT6" "-A" "POSTROUTING -t nat -s $IN_NETWORK6/$IN_NETMASK6 -o $OUT_INTERFACE -d $OUT_NETWORK6/$OUT_NETMASK6 -j SAMBA_MASQUERADE"
 
-        if [ "$ACTION" == "down" ] && is_chain_empty "$IPT6" "SAMBA_MASQUERADE -t nat"; then
+        if [ "$ACTION" == "down" ] && is_chain_used "$IPT6" "SAMBA_MASQUERADE -t nat"; then
             remove_chain "$IPT6" "SAMBA_MASQUERADE -t nat"
         fi
     fi
@@ -739,7 +739,7 @@ if [ "$ISOLATION" == "true" ]; then
 
     rule "$IPT" "-I" "$FORWARD_LINE" "FORWARD -i $IN_INTERFACE -d $IN_NETWORK/$IN_NETMASK -j ISOLATE_$IN_INTERFACE_UPPER"
 
-    if [ "$ACTION" == "down" ] && is_chain_empty "$IPT" "ISOLATE_$IN_INTERFACE_UPPER"; then
+    if [ "$ACTION" == "down" ] && is_chain_used "$IPT" "ISOLATE_$IN_INTERFACE_UPPER"; then
         remove_chain "$IPT" "ISOLATE_$IN_INTERFACE_UPPER"
     fi
 
@@ -753,7 +753,7 @@ if [ "$ISOLATION" == "true" ]; then
 
         rule "$IPT6" "-I" "$FORWARD_LINE6" "FORWARD -i $IN_INTERFACE -d $IN_NETWORK6/$IN_NETMASK6 -j ISOLATE_$IN_INTERFACE_UPPER"
 
-        if [ "$ACTION" == "down" ] && is_chain_empty "$IPT6" "ISOLATE_$IN_INTERFACE_UPPER"; then
+        if [ "$ACTION" == "down" ] && is_chain_used "$IPT6" "ISOLATE_$IN_INTERFACE_UPPER"; then
             remove_chain "$IPT6" "ISOLATE_$IN_INTERFACE_UPPER"
         fi
     fi
@@ -773,7 +773,7 @@ if [ "$LAN_ONLY" == "true" ]; then
 
     rule "$IPT" "-I" "$FORWARD_LINE" "FORWARD -i $IN_INTERFACE -j LANONLY_$IN_INTERFACE_UPPER"
 
-    if [ "$ACTION" == "down" ] && is_chain_empty "$IPT" "LANONLY_$IN_INTERFACE_UPPER"; then
+    if [ "$ACTION" == "down" ] && is_chain_used "$IPT" "LANONLY_$IN_INTERFACE_UPPER"; then
         remove_chain "$IPT" "LANONLY_$IN_INTERFACE_UPPER"
     fi
 
@@ -788,7 +788,7 @@ if [ "$LAN_ONLY" == "true" ]; then
 
         rule "$IPT6" "-I" "$FORWARD_LINE6" "FORWARD -i $IN_INTERFACE -j LANONLY_$IN_INTERFACE_UPPER"
 
-        if [ "$ACTION" == "down" ] && is_chain_empty "$IPT6" "LANONLY_$IN_INTERFACE_UPPER"; then
+        if [ "$ACTION" == "down" ] && is_chain_used "$IPT6" "LANONLY_$IN_INTERFACE_UPPER"; then
             remove_chain "$IPT6" "LANONLY_$IN_INTERFACE_UPPER"
         fi
     fi
@@ -807,7 +807,7 @@ if [ "$DEVICE_ONLY" == "true" ]; then
 
     rule "$IPT" "-I" "$FORWARD_LINE" "FORWARD -i $IN_INTERFACE ! -d $IN_NETWORK/$IN_NETMASK -j DEVONLY_$IN_INTERFACE_UPPER"
 
-    if [ "$ACTION" == "down" ] && is_chain_empty "$IPT" "DEVONLY_$IN_INTERFACE_UPPER"; then
+    if [ "$ACTION" == "down" ] && is_chain_used "$IPT" "DEVONLY_$IN_INTERFACE_UPPER"; then
         remove_chain "$IPT" "DEVONLY_$IN_INTERFACE_UPPER"
     fi
 
@@ -821,7 +821,7 @@ if [ "$DEVICE_ONLY" == "true" ]; then
 
         rule "$IPT6" "-I" "$FORWARD_LINE6" "FORWARD -i $IN_INTERFACE ! -d $IN_NETWORK6/$IN_NETMASK6 -j DEVONLY_$IN_INTERFACE_UPPER"
 
-        if [ "$ACTION" == "down" ] && is_chain_empty "$IPT6" "DEVONLY_$IN_INTERFACE_UPPER"; then
+        if [ "$ACTION" == "down" ] && is_chain_used "$IPT6" "DEVONLY_$IN_INTERFACE_UPPER"; then
             remove_chain "$IPT6" "DEVONLY_$IN_INTERFACE_UPPER"
         fi
     fi
@@ -851,7 +851,7 @@ if [ "$DNS_ONLY" == "true" ]; then
 
     rule "$IPT" "-I" $LINE "INPUT -i $IN_INTERFACE -s $IN_NETWORK/$IN_NETMASK -j DNSONLY_$IN_INTERFACE_UPPER"
 
-    if [ "$ACTION" == "down" ] && is_chain_empty "$IPT" "DNSONLY_$IN_INTERFACE_UPPER"; then
+    if [ "$ACTION" == "down" ] && is_chain_used "$IPT" "DNSONLY_$IN_INTERFACE_UPPER"; then
         remove_chain "$IPT" "DNSONLY_$IN_INTERFACE_UPPER"
     fi
 
@@ -876,7 +876,7 @@ if [ "$DNS_ONLY" == "true" ]; then
 
         rule "$IPT6" "-I" $LINE "INPUT -i $IN_INTERFACE -s $IN_NETWORK6/$IN_NETMASK6 -j DNSONLY_$IN_INTERFACE_UPPER"
 
-        if [ "$ACTION" == "down" ] && is_chain_empty "$IPT6" "DNSONLY_$IN_INTERFACE_UPPER"; then
+        if [ "$ACTION" == "down" ] && is_chain_used "$IPT6" "DNSONLY_$IN_INTERFACE_UPPER"; then
             remove_chain "$IPT6" "DNSONLY_$IN_INTERFACE_UPPER"
         fi
     fi
