@@ -438,7 +438,6 @@ if [ "$DEBUG" == "true" ]; then
     CONFIG_VARS=(IN_INTERFACE OUT_INTERFACE PORT ISOLATION MASQUERADE SAMBA LAN_ONLY DEVICE_ONLY DNS_ONLY IPV6 DEBUG VERBOSE TEST QUIET IPT IPT6)
 
     for i in "${CONFIG_VARS[@]}"; do
-        : 
         echo " $i = ${!i}"
     done
 

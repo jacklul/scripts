@@ -33,9 +33,7 @@ if [ "$1" == "postdpkg" ]; then
 		readarray -t STATEARRAY < $STATEFILE
 
 		ALLUPDATED=true
-		for i in "${STATEARRAY[@]}"
-		do
-			:
+		for i in "${STATEARRAY[@]}"; do
 			PACKAGE=$(echo "$i" | awk -F'/' '{print $1}')
 			NEWVERSION=$(echo "$i" | awk '{print $2}')
 			CURVERSION=$(dpkg -s "$PACKAGE" | grep '^Version:' | awk '{print $2}')
@@ -50,7 +48,7 @@ if [ "$1" == "postdpkg" ]; then
 			echo "" > "$STATEFILE"
 		fi
 	fi
-	
+
 	exit
 fi
 
