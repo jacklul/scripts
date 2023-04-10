@@ -1,0 +1,12 @@
+[Unit]
+Description=Copy syslog to data partition after boot is complete
+After=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment="DATE_FORMAT=+%%s"
+ExecStart=/bin/sh -c "cp /var/log/syslog \"/data/var/log/syslog-$(date ${DATE_FORMAT})\" ; find /data/var/log/ -type f -mtime +0 -delete"
+
+[Install]
+WantedBy=multi-user.target
