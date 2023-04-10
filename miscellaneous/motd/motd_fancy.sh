@@ -18,7 +18,8 @@
 # ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 #
 # You will want to add this to cron to display number of APT updates:
-#  @hourly echo "$(apt list --upgradable 2> /dev/null | awk '{if(NR>1)print}' | awk -F '\[upgradable from' '{print $1}' | awk '{print $1,$2}')" > /var/cache/apt/apt-daily-notify.state
+#  @hourly echo "$(apt list --upgradable 2> /dev/null | awk '{if(NR>1)print}' | awk -F '\[upgradable from' '{print $1}' | awk '{print $1,$2}')" > /var/lib/apt/update-notify.state
+#
 
 stty -echo
 
