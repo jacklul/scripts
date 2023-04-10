@@ -6,7 +6,7 @@ set -e
 command -v wg >/dev/null 2>&1 || { echo "This script requires Wireguard's 'wg' utility to run!"; }
 
 SPATH=$(dirname "$0")
-REMOTE_URL=https://raw.githubusercontent.com/jacklul/scripts/main/wg-peers
+REMOTE_URL=https://raw.githubusercontent.com/jacklul/scripts/main/wireguard/wg-peers
 
 if [ -f "$SPATH/wg-peers.sh" ]; then
 	cp -v "$SPATH/wg-peers.sh" /usr/local/sbin/wg-peers && chmod 755 /usr/local/sbin/wg-peers
