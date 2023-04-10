@@ -1,0 +1,11 @@
+[Unit]
+Description=Grab remote and local version of Pi-hole
+After=network-online.target multi-user.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/pihole updatechecker
+
+# Add this in override
+#ExecStartPost=/opt/helpers/pihole-update-notify.sh
