@@ -2,9 +2,9 @@
 # Made by Jack'lul <jacklul.github.io>
 #
 # /etc/lighttpd/certs/gencert.sh
-# sudo wget -nv -O "/etc/lighttpd/certs/gencert.sh" "https://raw.githubusercontent.com/jacklul/scripts/master/lighttpd/gencert.sh" && sudo chmod +x /etc/lighttpd/certs/gencert.sh
-#
 # Helper for generating certificates
+#
+# sudo wget -nv -O "/etc/lighttpd/certs/gencert.sh" "https://raw.githubusercontent.com/jacklul/scripts/master/lighttpd/gencert.sh" && sudo mkdir -p /etc/lighttpd/certs && sudo chmod +x /etc/lighttpd/certs/gencert.sh
 #
 
 if [[ $(/usr/bin/id -u) -ne 0 ]]; then
