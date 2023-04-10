@@ -1,0 +1,13 @@
+[Unit]
+Description=USB Gadget
+ConditionPathIsDirectory=/sys/kernel/config/usb_gadget
+After=systemd-modules-load.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/usb-gadget up
+ExecStop=/usr/local/sbin/usb-gadget down
+
+[Install]
+WantedBy=sysinit.target
