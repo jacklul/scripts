@@ -2,6 +2,20 @@
 
 Simple script to manage your WireGuard peers.
 
+## Requirements
+
+- Wireguard's `wg` command
+
+## Installation
+
+**This script installs into `/usr/local/sbin/`.**
+
+```bash
+wget -O - https://raw.githubusercontent.com/jacklul/scripts/main/wg-peers/install.sh | sudo bash
+```
+
+## Usage
+
 ```
 Usage:
  wg-peers list [if]          - list peers
@@ -12,7 +26,7 @@ Usage:
  wg-peers restart [if]       - restart interface
 ```
 
-This script requires specific style of configuration - see [example directory](example/) for details.
+This script requires specific style of configuration - see [example configuration](configuration-example/) for details.
 
 All peers data is stored in `wg0-peers.conf` like this:
 ```

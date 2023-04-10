@@ -1,12 +1,12 @@
 #!/bin/bash
 
-[ "$UID" -eq 0 ] || exec sudo bash "$0" "$@"
+[ "$UID" -eq 0 ] || { echo "This must run as root!"; exit 1; }
 
 set -e
-command -v wg >/dev/null 2>&1 || { echo "This script requires wireguard 'wg' utility to run!"; }
+command -v wg >/dev/null 2>&1 || { echo "This script requires Wireguard's 'wg' utility to run!"; }
 
 SPATH=$(dirname "$0")
-REMOTE_URL=https://raw.githubusercontent.com/jacklul/wg-peers/master
+REMOTE_URL=https://raw.githubusercontent.com/jacklul/scripts/main/wg-peers
 
 if [ -f "$SPATH/wg-peers.sh" ]; then
 	cp -v "$SPATH/wg-peers.sh" /usr/local/sbin/wg-peers && chmod 755 /usr/local/sbin/wg-peers

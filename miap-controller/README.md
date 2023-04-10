@@ -23,14 +23,24 @@ Uses [ggottwald/miio](https://github.com/ggottwald/miio).
 
 I recommend the normal non-root install.
 
+```bash
+wget -O - https://raw.githubusercontent.com/jacklul/scripts/main/miap-controller/install.sh | bash
+```
+OR
+```bash
+wget -O - https://raw.githubusercontent.com/jacklul/scripts/main/miap-controller/install.sh | sudo bash
+```
+
+OR
+
 - Copy this whole directory and transfer it to the device
 - Run `composer install`
 - Run `composer build`
-- Run `install.sh`
-- (user install) Copy `miap-controller.conf.example` to `/home/$USER/.config/miap-controller.conf` and modify it to your needs
-- (root install) Copy `miap-controller.conf.example` to `/etc/miap-controller.conf` and modify it to your needs
+- Run `install.sh` or `sudo install.sh`
 
 ## Configuration
+
+Modify `/home/$USER/.config/miap-controller.conf` OR `/etc/miap-controller.conf` to your needs.
 
 See [miap-controller.conf.example](miap-controller.conf.example) for an example configuration.
 

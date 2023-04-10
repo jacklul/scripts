@@ -2,5 +2,4 @@ vendor/
 .env
 *.conf
 *.log
-*.phar
 *.db

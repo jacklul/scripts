@@ -1,28 +1,55 @@
 #!/bin/bash
 
-if [ "$UID" -eq 0 ]; then
-	echo This cannot be run as root
-	exit
-fi
+[ "$UID" -eq 0 ] && { echo "This cannot be run as root!"; exit 1; }
 
 SPATH=$(dirname "$0")
+REQUIRED_FILES=( fmovies-watchlist.php fmovies-watchlist.service fmovies-watchlist.timer fmovies-watchlist.conf.example )
+DOWNLOAD_PATH=fmovies-watchlist
+DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/main/fmovies-watchlist
+
 set -e
 
-if [ -f "$SPATH/fmovies-watchlist.php" ] && [ -f "$SPATH/fmovies-watchlist.service" ] && [ -f "$SPATH/fmovies-watchlist.timer" ]; then
-	mkdir -pv ~/.local/bin
-	cp -v "$SPATH/fmovies-watchlist.php" ~/.local/bin/fmovies-watchlist && chmod 755 ~/.local/bin/fmovies-watchlist
+MISSING_FILES=0
+for FILE in "${REQUIRED_FILES[@]}"; do
+	if [ ! -f "$SPATH/$FILE" ]; then
+		MISSING_FILES=$((MISSING_FILES+1))
+	fi
+done
 
-	mkdir -pv ~/.config/systemd/user/
-	cp -v "$SPATH/fmovies-watchlist.service" ~/.config/systemd/user/ && chmod 644 ~/.config/systemd/user/fmovies-watchlist.service
-	cp -v "$SPATH/fmovies-watchlist.timer" ~/.config/systemd/user/ && chmod 644 ~/.config/systemd/user/fmovies-watchlist.timer
+if [ "$MISSING_FILES" -gt 0 ]; then
+	if [ "$MISSING_FILES" != "${#MISSING_FILES[@]}" ]; then
+		mkdir -v "$SPATH/$DOWNLOAD_PATH"
+		SPATH="$SPATH/$DOWNLOAD_PATH"
+	fi
 
-	command -v dos2unix >/dev/null 2>&1 && dos2unix ~/.local/bin/fmovies-watchlist
-
-	echo -e "\nTo enable and start the timer use this command: \"systemctl --user enable fmovies-watchlist.timer && systemctl --user start fmovies-watchlist.timer\""
-	echo "You might also need to run \"loginctl enable-linger $USER\" to enable the launch of timers for not logged in users"
-
-	systemctl daemon-reload --user
-else
-	echo "Missing required files for installation!"
-	exit 1
+	for FILE in "${REQUIRED_FILES[@]}"; do
+		if [ ! -f "$SPATH/$FILE" ]; then
+			wget -nv -O "$SPATH/$FILE" "$DOWNLOAD_URL/$FILE"
+		fi
+	done
 fi
+
+for FILE in "${REQUIRED_FILES[@]}"; do
+	if [ ! -f "$SPATH/$FILE" ]; then
+		echo "Missing required file for installation: $FILE"
+		exit 1
+	fi
+done
+
+mkdir -pv ~/.local/bin
+cp -v "$SPATH/fmovies-watchlist.php" ~/.local/bin/fmovies-watchlist && chmod 755 ~/.local/bin/fmovies-watchlist
+
+mkdir -pv ~/.config/systemd/user/
+cp -v "$SPATH/fmovies-watchlist.service" ~/.config/systemd/user/ && chmod 644 ~/.config/systemd/user/fmovies-watchlist.service
+cp -v "$SPATH/fmovies-watchlist.timer" ~/.config/systemd/user/ && chmod 644 ~/.config/systemd/user/fmovies-watchlist.timer
+
+if [ ! -f "/home/$USER/.config/fmovies-watchlist/fmovies-watchlist.conf" ] && [ -f "$SPATH/fmovies-watchlist.conf.example" ]; then
+	cp -v "$SPATH/fmovies-watchlist.conf.example" "/home/$USER/.config/fmovies-watchlist/fmovies-watchlist.conf"
+fi
+
+command -v dos2unix >/dev/null 2>&1 && dos2unix ~/.local/bin/fmovies-watchlist
+
+echo -e "\nTo enable and start the timer use this command: \"systemctl --user enable fmovies-watchlist.timer && systemctl --user start fmovies-watchlist.timer\""
+echo "You might also need to run \"loginctl enable-linger $USER\" to enable the launch of timers for not logged in users"
+
+systemctl daemon-reload --user

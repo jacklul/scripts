@@ -14,13 +14,20 @@ If you would like to use different delivery method then you will have to modify 
 
 **This script installs into `/home/$USER/.local/bin/`.**
 
+```bash
+wget -O - https://raw.githubusercontent.com/jacklul/scripts/main/fmovies-watchlist/install.sh | bash
+```
+
+OR
+
 - Copy this whole directory and transfer it to the device
 - Run `install.sh`
-- Copy `fmovies-watchlist.conf.example` to `/home/$USER/.config/fmovies-watchlist/fmovies-watchlist.conf` and modify it to your needs
 
 By default the script runs every 10 minutes, you can change this by overriding [timer file](https://www.freedesktop.org/software/systemd/man/systemd.timer.html) - `systemctl --user edit fmovies-watchlist.timer`.
 
 ## Configuration
+
+Modify `/home/$USER/.config/showRSS/showRSS.conf` to your needs.
 
 See [fmovies-watchlist.conf.example](fmovies-watchlist.conf.example) for an example configuration.
 
