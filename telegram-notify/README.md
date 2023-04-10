@@ -15,7 +15,7 @@ Will also inject update checker when installed through install script from this 
 **This script installs into `/usr/local/bin`.**
 
 ```bash
-wget -O - https://raw.githubusercontent.com/jacklul/scripts/main/telegram-notify/install.sh | sudo bash
+wget -O - https://raw.githubusercontent.com/jacklul/scripts/master/telegram-notify/install.sh | sudo bash
 ```
 
 OR

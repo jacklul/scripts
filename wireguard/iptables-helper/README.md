@@ -7,7 +7,7 @@ This utility allows quickly setting up firewall rules for your home Wireguard tu
 **This script will put it in `/etc/wireguard/iptables-helper.sh`:**
 
 ```bash
-wget -O - https://raw.githubusercontent.com/jacklul/scripts/main/wireguard/iptables-helper/install.sh | sudo bash
+wget -O - https://raw.githubusercontent.com/jacklul/scripts/master/wireguard/iptables-helper/install.sh | sudo bash
 ```
 
 OR

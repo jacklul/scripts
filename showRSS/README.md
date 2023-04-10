@@ -15,7 +15,7 @@ If you would like to use different delivery method then you will have to modify 
 **This script installs into `/home/$USER/.local/bin/`.**
 
 ```bash
-wget -O - https://raw.githubusercontent.com/jacklul/scripts/main/showRSS/install.sh | bash
+wget -O - https://raw.githubusercontent.com/jacklul/scripts/master/showRSS/install.sh | bash
 ```
 
 OR

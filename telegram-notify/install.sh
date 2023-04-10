@@ -6,7 +6,7 @@ command -v curl >/dev/null 2>&1 || { echo "This script requires cURL to run!"; e
 SPATH=$(dirname "$0")
 REQUIRED_FILES=( telegram-notify.sh telegram-notify@.service telegram-notify-updatecheck.sh )
 DOWNLOAD_PATH=telegram-notify
-DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/main/telegram-notify
+DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/master/telegram-notify
 DOWNLOAD_URL_ORIGINAL=https://raw.githubusercontent.com/NicolasBernaerts/debian-scripts/master/telegram
 
 set -e

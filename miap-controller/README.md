@@ -24,11 +24,11 @@ Uses [ggottwald/miio](https://github.com/ggottwald/miio).
 I recommend the normal non-root install.
 
 ```bash
-wget -O - https://raw.githubusercontent.com/jacklul/scripts/main/miap-controller/install.sh | bash
+wget -O - https://raw.githubusercontent.com/jacklul/scripts/master/miap-controller/install.sh | bash
 ```
 OR
 ```bash
-wget -O - https://raw.githubusercontent.com/jacklul/scripts/main/miap-controller/install.sh | sudo bash
+wget -O - https://raw.githubusercontent.com/jacklul/scripts/master/miap-controller/install.sh | sudo bash
 ```
 
 OR

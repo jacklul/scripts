@@ -2,7 +2,7 @@
 # Made by Jack'lul <jacklul.github.io>
 #
 # /etc/lighttpd/certs/gencert.sh
-# sudo wget -nv -O "/etc/lighttpd/certs/gencert.sh" "https://raw.githubusercontent.com/jacklul/scripts/main/lighttpd/gencert.sh" && sudo chmod +x /etc/lighttpd/certs/gencert.sh
+# sudo wget -nv -O "/etc/lighttpd/certs/gencert.sh" "https://raw.githubusercontent.com/jacklul/scripts/master/lighttpd/gencert.sh" && sudo chmod +x /etc/lighttpd/certs/gencert.sh
 #
 # Helper for generating certificates
 #

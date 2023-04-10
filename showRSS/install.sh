@@ -5,7 +5,7 @@
 SPATH=$(dirname "$0")
 REQUIRED_FILES=( showRSS.php showRSS.service showRSS.timer showRSS.conf.example )
 DOWNLOAD_PATH=showRSS
-DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/main/showRSS
+DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/master/showRSS
 
 set -e
 

@@ -5,7 +5,7 @@
 SPATH=$(dirname "$0")
 REQUIRED_FILES=( usb-gadget.sh usb-gadget.service usb-gadget.conf )
 DOWNLOAD_PATH=usb-gadget
-DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/main/usb-gadget
+DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/master/usb-gadget
 
 set -e
 

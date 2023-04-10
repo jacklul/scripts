@@ -15,7 +15,7 @@ Extremely simple script to set up Raspberry Pi Zero (and possibly others) as a U
 **This script installs into `/usr/local/sbin/`.**
 
 ```bash
-wget -O - https://raw.githubusercontent.com/jacklul/scripts/main/usb-gadget/install.sh | sudo bash
+wget -O - https://raw.githubusercontent.com/jacklul/scripts/master/usb-gadget/install.sh | sudo bash
 ```
 
 OR

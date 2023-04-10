@@ -3,7 +3,7 @@
 SPATH=$(dirname "$0")
 REQUIRED_FILES=( miap-controller.phar miap-controller.conf.example )
 DOWNLOAD_PATH=miap-controller
-DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/main/miap-controller
+DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/master/miap-controller
 
 if [ "$UID" -eq 0 ]; then
 	REQUIRED_FILES+=("$SPATH/miap-controller-system.service")

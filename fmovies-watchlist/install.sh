@@ -5,7 +5,7 @@
 SPATH=$(dirname "$0")
 REQUIRED_FILES=( fmovies-watchlist.php fmovies-watchlist.service fmovies-watchlist.timer fmovies-watchlist.conf.example )
 DOWNLOAD_PATH=fmovies-watchlist
-DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/main/fmovies-watchlist
+DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/master/fmovies-watchlist
 
 set -e
 

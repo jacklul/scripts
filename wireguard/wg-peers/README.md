@@ -11,7 +11,7 @@ Simple script to manage your WireGuard peers.
 **This script installs into `/usr/local/sbin/`.**
 
 ```bash
-wget -O - https://raw.githubusercontent.com/jacklul/scripts/main/wireguard/wg-peers/install.sh | sudo bash
+wget -O - https://raw.githubusercontent.com/jacklul/scripts/master/wireguard/wg-peers/install.sh | sudo bash
 ```
 
 ## Usage

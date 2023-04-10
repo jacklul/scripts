@@ -5,7 +5,7 @@
 SPATH=$(dirname "$0")
 REQUIRED_FILES=( iptables-helper.sh )
 DOWNLOAD_PATH=iptables-helper
-DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/main/wireguard/iptables-helper
+DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/master/wireguard/iptables-helper
 
 set -e
 
