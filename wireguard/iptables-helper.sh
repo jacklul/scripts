@@ -34,6 +34,7 @@ FORCE_DNS=""
 IPV6=false
 IN_IPV6=false
 OUT_IPV6=false
+OUT_CHECK=true
 VERBOSE=false
 DEBUG=false
 TEST=false
@@ -295,6 +296,13 @@ get_line_number_end() {
     return 1
 }
 
+# Verify that specified interface has a default gateway route
+gateway_check() {
+    local INTERFACE="$1"
+
+    ip route show | grep "$INTERFACE" | grep default | awk '{print $3}'
+}
+
 POSITIONAL_ARGS=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -349,6 +357,10 @@ while [[ $# -gt 0 ]]; do
             DEBUG=true
             shift
         ;;
+        -b|--no-verify)
+            OUT_CHECK=false
+            shift
+        ;;
         -t|--test)
             TEST=true
             shift
@@ -370,6 +382,7 @@ while [[ $# -gt 0 ]]; do
             echo " -p, --dns-only                 Prevent clients from accessing services other than DNS on this device"
             echo " -n, --force-dns [DNS]          Force clients to use specified DNS (IPv4 only)"
             echo " -6, --ipv6                     Enable IPv6 support"
+            echo " -b, --no-out-check             Do not verify whenever outgoing interface is connected"
             echo " -d, --debug                    Show debug information and log dropped packets"
             echo " -v, --verbose                  Show more operational information"
             echo " -t, --test                     Test mode - no rules will be executed"
@@ -448,6 +461,28 @@ if [ "$DEBUG" = true ]; then
     done
 
     echo ""
+fi
+
+# Verify that the outgoing interface is connected to network
+if [ "$OUT_CHECK" = true ]; then
+    if [ -z "$(gateway_check "$OUT_INTERFACE")" ]; then
+        echo "Waiting for the interface \"$OUT_INTERFACE\" to be connected..."
+
+        _TIMER=0
+        _TIMEOUT=60
+        while [ "$_TIMER" -lt "$_TIMEOUT" ]; do
+            GATEWAY="$(gateway_check "$OUT_INTERFACE")"
+            [ -n "$GATEWAY" ] && break
+
+            _TIMER=$((_TIMER+1))
+            sleep 1
+        done
+
+        if [ "$_TIMER" -ge "$_TIMEOUT" ]; then
+            echo "Interface \"$OUT_INTERFACE\" is not connected to network"
+            exit 1
+        fi
+    fi
 fi
 
 # Detect addresses and their netmasks
