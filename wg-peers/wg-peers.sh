@@ -141,7 +141,7 @@ function getNextIPAddress() {
 	fi
 	
 	# Find first available IP
-	for i in $(seq 2 254); do 
+	for i in $(seq 2 254); do
 		for line in $PEERS_IPS_PARTS; do
 			if [ "$i" == "$line" ]; then
 				continue 2

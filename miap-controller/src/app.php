@@ -15,21 +15,21 @@ final class MIAPController
 {
     /**
      * Socket object handle
-     * 
+     *
      * @var Socket
      */
     private $socket = null;
 
     /**
      * Device object handle
-     * 
+     *
      * @var AirPurifier
      */
     private $device = null;
 
     /**
      * Current device model
-     * 
+     *
      * @var string
      */
     private $model = null;
@@ -97,7 +97,7 @@ final class MIAPController
     /**
      * Service mappings for certain Air Purifier models
      * Taken from https://python-miio.readthedocs.io/en/latest/_modules/miio/airpurifier_miot.html
-     * 
+     *
      * @var array
      */
     private $serviceMapping = [
@@ -264,7 +264,7 @@ final class MIAPController
                 $this->command = $args[1];
             }
         }
-        
+
         if (isset($args[2]) && $this->command === null) {
             $this->command = $args[2];
         }
@@ -371,13 +371,13 @@ final class MIAPController
 
             $interrupt = function($signo = 130) {
                 echo PHP_EOL;
-                
+
                 if (!empty($this->config['DBFILE'])) {
                     $this->writeStats();
                 }
 
                 $this->printAndLog(PHP_EOL . 'User interrupted' . PHP_EOL, 'NOTICE');
-                
+
                 exit(130);
             };
 
@@ -412,7 +412,7 @@ final class MIAPController
 
             if ($this->command !== null) {
                 $this->printAndLog('Executing command \'' . $this->command . '\'...', 'DEBUG');
-                
+
                 $status = $this->sendCommand($this->command);
 
                 if ($status) {
@@ -954,7 +954,7 @@ final class MIAPController
 
         if ($needs_init) {
             $sth = $dbh->prepare('CREATE TABLE `stats` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `aqi` INTEGERNOT NULL, `date` DATETIME NOT NULL)');
-            
+
             if (!$sth->execute()) {
                 $this->printAndLog('Failed to create database schema: ' . $dbh->errorInfo(), 'ERROR');
                 exit(1);
@@ -1002,7 +1002,7 @@ final class MIAPController
         if ($dbh = $this->openDatabase()) {
             $sth = $dbh->prepare('DELETE FROM `stats` WHERE `date` < :date');
             $sth->bindValue(':date', date('Y-m-d H:i:s', strtotime('-' . $this->config['DBMAXDAYS'] . ' days')), PDO::PARAM_STR);
-            
+
             if ($sth->execute()) {
                 $this->printAndLog('Affected row count: ' . $sth->rowCount(), 'DEBUG');
 
@@ -1010,7 +1010,7 @@ final class MIAPController
                     $this->printAndLog('Cleaned up ' . $sth->rowCount() . ' old record(s) from the database', 'INFO');
                 }
             }
-            
+
             if (filesize($this->config['DBFILE']) > $this->config['DBMAXSIZE']) {
                 $this->config['QUIET'] === false && $this->printAndLog('Database size exceeded ' . $this->config['DBMAXSIZE'] . ' bytes, performing cleanup...', 'INFO');
 
@@ -1024,17 +1024,17 @@ final class MIAPController
 
                     $sth = $dbh->prepare('DELETE FROM `stats` WHERE `id` IN (SELECT `id` FROM `stats` ORDER BY `id` ASC LIMIT :limit)');
                     $sth->bindParam(':limit', $toremove, PDO::PARAM_INT);
-                    
+
                     if ($sth->execute()) {
                         $removed += $toremove;
                         $toremove = ceil($toremove/2);
-                        
+
                         $dbh->query('VACUUM');
                         $dbh = null;
                         clearstatcache();
                     }
                 } while (filesize($this->config['DBFILE']) > $this->config['DBMAXSIZE'] && $started + 10 > time());
-                
+
                 if ($removed > 0 && $this->config['QUIET'] === false) {
                     $this->printAndLog('Removed ' . $removed . ' oldest record(s) from the database', 'INFO');
                 }
@@ -1043,7 +1043,7 @@ final class MIAPController
             }
         }
     }
-    
+
     /**
      * @param string $command
      *

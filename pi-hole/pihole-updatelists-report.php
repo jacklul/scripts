@@ -46,7 +46,7 @@ if (!empty($matches[0])) {
 		$first = $matches[1][0];
 		$last = $matches[1][count($matches[1]) - 1];
 
-		$seconds = (new DateTime($last))->getTimestamp() - (new DateTime($first))->getTimestamp(); 
+		$seconds = (new DateTime($last))->getTimestamp() - (new DateTime($first))->getTimestamp();
 
 		echo PHP_EOL . 'Finished in ' . $seconds . ' seconds.' . PHP_EOL;
 	}

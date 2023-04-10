@@ -216,7 +216,7 @@ final class HttpResponse
 
         foreach (explode("\r\n", substr($response, 0, $header_size)) as $i => $line) {
             $this->raw_headers .= $line . "\r\n";
-            
+
             if ($i === 0 && preg_match('/(\d{3})/', $line, $matches)) {
                 $this->headers['status'] = $line;
                 $this->status_code       = (int) $matches[1];
@@ -528,7 +528,7 @@ final class FMoviesNotify
         if (!empty($this->local_data)) {
             if (count($newReleases) > 0) {
                 $this->notify($newReleases);
-        
+
                 echo 'Found ' . count($newReleases) . ' new release(s)' . PHP_EOL;
             } else {
                 echo 'No new releases found' . PHP_EOL;
@@ -899,7 +899,7 @@ final class FMoviesNotify
 
         return false;
     }
-    
+
     /**
      * @param array  $watchlist_data
      * @param array  $local_data

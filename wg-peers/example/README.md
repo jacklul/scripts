@@ -4,6 +4,6 @@ Interface's public and private keys should be stored in separate files - `wg0-pu
 
 This is the base template for configuration you give to the users
 
-####  `wg0.conf` 
+####  `wg0.conf`
 
 This is example interface configuration, you can modify it however you want but **do not remove the line loading `%i-peers.conf` file!**

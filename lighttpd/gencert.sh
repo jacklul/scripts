@@ -37,25 +37,25 @@ while [[ $# -gt 0 ]]; do
         -g|--generic)
             TYPE=1
             shift
-            ;;
+		;;
         -d|--domain)
             TYPE=2
             shift
-            ;;
+		;;
         -c|--ca)
             TYPE=3
             shift
-            ;;
+		;;
         -n|--name)
             FILENAME="${2}"
             shift
             shift
-            ;;
+		;;
         -t|--days)
             LIFETIME="${2}"
             shift
             shift
-            ;;
+		;;
         -o|--subject)
 			if [ "$SUBJECT" != "" ]; then
 				echo "Error: Subject is already set"
@@ -64,12 +64,12 @@ while [[ $# -gt 0 ]]; do
             SUBJECT="${2}"
             shift
             shift
-            ;;
+		;;
         -a|--ca-certificate)
             CAFILENAME="${2}"
             shift
             shift
-            ;;
+		;;
         -b|--auto-subject)
 			if [ "$SUBJECT" != "" ]; then
 				echo "Error: Subject is already set"
@@ -77,20 +77,20 @@ while [[ $# -gt 0 ]]; do
 			fi
             SUBJECT="/CN=$(hostname -s)/O=Internet Widgits Pty Ltd/emailAddress=root@$(hostname -s)/"
             shift
-            ;;
+		;;
         -f|--force)
             FORCE="true"
             shift
-            ;;
+		;;
         -p|--path)
             THISDIR="${2}"
             shift
             shift
-            ;;
+		;;
         -u|--no-subdir)
             NOSUBDIR="true"
             shift
-            ;;
+		;;
         ?|-h|--help)
             echo "Usage: $(basename "$0") [ARGS...]"
             echo "Options:"
@@ -107,15 +107,15 @@ while [[ $# -gt 0 ]]; do
             echo " -u, --no-subdir          Do not store domain certificates in subdirectory (not recommended)"
             echo ""
             exit
-            ;;
+		;;
         -*)
             echo "Unknown option: $1"
             exit 1
-            ;;
+		;;
         *)
             POSITIONAL_ARGS+=("$1")
             shift
-            ;;
+		;;
     esac
 done
 
@@ -134,18 +134,18 @@ if [ "$TYPE" == "0" ]; then
 			"Generate self-signed certificate")
 				TYPE=1
 				break;
-				;;
+			;;
 			"Generate CA-signed domain certificate")
 				TYPE=2
 				break;
-				;;
+			;;
 			"Generate self-signed CA certificate")
 				TYPE=3
 				break;
-				;;
+			;;
 			"Quit")
 				exit
-				;;
+			;;
 			*)
 				echo "Invalid option $OPT"
 				exit 1
@@ -200,7 +200,7 @@ case $TYPE in
 		chmod 400 "$THISDIR/$FILENAME.pem"
 
 		echo "ssl.pemfile = \"$THISDIR/$FILENAME.pem\""
-		;;
+	;;
 	2)
 		if [ "$CAFILENAME" == "" ]; then
 			read -rp 'CA certificate file name [ca]: ' CAFILENAME
@@ -347,7 +347,7 @@ DNS.2 = *.$DOMAIN
 		echo "ssl.pemfile = \"$TARGETSIGNED\"
 ssl.privkey = \"$TARGETKEY\"
 ssl.ca-file = \"$THISDIR/$CAFILENAME.pem\""
-		;;
+	;;
 	3)
 		if [ "$FILENAME" == "" ]; then
 			read -rp 'Certificate name [ca]: ' FILENAME
@@ -393,8 +393,8 @@ ssl.ca-file = \"$THISDIR/$CAFILENAME.pem\""
 		chmod 400 "$THISDIR/$FILENAME.key" "$THISDIR/$FILENAME.pem"
 
 		echo "ssl.ca-file = \"$THISDIR/$FILENAME.pem\""
-		;;
-	*) 
+	;;
+	*)
 		echo "Invalid option type $TYPE"
 		exit 1
 	;;
