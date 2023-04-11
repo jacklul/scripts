@@ -86,19 +86,11 @@ set_mac_addresses() {
 }
 
 usb_gadget_up() {
-    if ! grep -q dtoverlay=dwc2 /boot/config.txt ; then
-        echo "Add the 'dtoverlay=dwc2' to /boot/config.txt"
-    fi
-
-    if ! grep -q modules-load=dwc2 /boot/cmdline.txt ; then
-        echo "Add the 'modules-load=dwc2' to /boot/cmdline.txt"
-    fi
+    grep -q dtoverlay=dwc2 /boot/config.txt || echo "Add the 'dtoverlay=dwc2' to /boot/config.txt"
+    grep -q modules-load=dwc2 /boot/cmdline.txt || echo "Add the 'modules-load=dwc2' to /boot/cmdline.txt"
 
     if [ -d "$PATHDIR" ]; then
-        if [ "$(cat "$PATHDIR/UDC")" != "" ]; then
-            echo "Gadget \"$ID\" is already up"
-            exit 1
-        fi
+        [ "$(cat "$PATHDIR/UDC")" != "" ] && { echo "Gadget \"$ID\" is already up"; exit 1; }
 
         echo "Cleaning up old gadget \"$ID\"...";
         usb-gadget_down
@@ -157,10 +149,7 @@ usb_gadget_up() {
 
         [ ! -d "$PATHDIR/functions/mass_storage.$INSTANCE/lun.0" ] && mkdir "$PATHDIR/functions/mass_storage.$INSTANCE/lun.0"
 
-        if [ "$STORAGE_FILE" != "" ] && [ ! -f "$STORAGE_FILE" ]; then
-            echo "Image file does not exist: $STORAGE_FILE"
-            exit 1
-        fi
+        { [ "$STORAGE_FILE" != "" ] && [ ! -f "$STORAGE_FILE" ]; } && { echo "Image file does not exist: $STORAGE_FILE"; exit 1; }
 
         [ "$STORAGE_CDROM" != "" ] && echo "$STORAGE_CDROM" > "$PATHDIR/functions/mass_storage.$INSTANCE/lun.0/cdrom"
         [ "$STORAGE_REMOVABLE" != "" ] && echo "$STORAGE_REMOVABLE" > "$PATHDIR/functions/mass_storage.$INSTANCE/lun.0/removable"
@@ -258,10 +247,7 @@ usb_gadget_up() {
 
 #shellcheck disable=SC2086
 usb_gadget_down() {
-    if [ ! -d "$PATHDIR" ]; then
-        echo "Gadget \"$ID\" is already down";
-        exit 1
-    fi
+    [ ! -d "$PATHDIR" ] && { echo "Gadget \"$ID\" is already down"; exit 1; }
 
     set -e
     echo "Taking down gadget \"$ID\"...";
@@ -324,10 +310,7 @@ usb_gadget_down() {
 
 #shellcheck disable=SC2086
 usb_gadget_status() {
-    if [ ! -d "$PATHDIR" ]; then
-        echo "Gadget \"$ID\" does not exist";
-        exit 1
-    fi
+    [ ! -d "$PATHDIR" ] && { echo "Gadget \"$ID\" does not exist"; exit 1; }
 
     INSTANCE_RNDIS=$(find $PATHDIR/functions -maxdepth 1 -name "rndis.*" | grep -o '[^.]*$' || echo "")
     INSTANCE_ECM=$(find $PATHDIR/functions -maxdepth 1 -name "ecm.*" | grep -o '[^.]*$' || echo "")
@@ -351,15 +334,8 @@ usb_gadget_status() {
 usb_gadget_mount() {
     INSTANCE_MS=$(find "$PATHDIR/functions" -maxdepth 1 -name "mass_storage.*" | grep -o '[^.]*$' || echo "")
 
-    if [ -z "$INSTANCE_MS" ]; then
-        echo "Gadget \"$ID\" does not have mass storage function";
-        exit 1
-    fi
-
-    if [ ! -f "$ARG2" ]; then
-        echo "Image file does not exist: $ARG2"
-        exit 1
-    fi
+    [ -z "$INSTANCE_MS" ] && { echo "Gadget \"$ID\" does not have mass storage function"; exit 1; }
+    [ ! -f "$ARG2" ] && { echo "Image file does not exist: $ARG2"; exit 1; }
 
     echo "Mounting..."
 
@@ -373,10 +349,7 @@ usb_gadget_mount() {
 usb_gadget_umount() {
     INSTANCE_MS=$(find "$PATHDIR/functions" -maxdepth 1 -name "mass_storage.*" | grep -o '[^.]*$' || echo ""/)
 
-    if [ -z "$INSTANCE_MS" ]; then
-        echo "Gadget \"$ID\" does not have mass storage function";
-        exit 1
-    fi
+    [ -z "$INSTANCE_MS" ] && { echo "Gadget \"$ID\" does not have mass storage function"; exit 1; }
 
     echo "Unmounting..."
 

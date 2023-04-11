@@ -20,19 +20,15 @@ if [ -f "$STATEFILE" ] && [ ! -w "$STATEFILE" ] || [ ! -w "$(dirname $STATEFILE)
 	exit 1
 fi
 
-if [ ! -d "$(dirname $STATEFILE)" ] ; then
-	mkdir -p "$(dirname $STATEFILE)"
-fi
-
-if [ ! -f "$STATEFILE" ] ; then
-	echo "" > "$STATEFILE"
-fi
+[ ! -d "$(dirname $STATEFILE)" ] && mkdir -p "$(dirname $STATEFILE)"
+[ ! -f "$STATEFILE" ] && echo "" > "$STATEFILE"
 
 if [ "$1" == "postdpkg" ]; then
 	if [ -s "$STATEFILE" ]; then
 		readarray -t STATEARRAY < $STATEFILE
 
 		ALLUPDATED=true
+
 		for i in "${STATEARRAY[@]}"; do
 			PACKAGE=$(echo "$i" | awk -F'/' '{print $1}')
 			NEWVERSION=$(echo "$i" | awk '{print $2}')
@@ -44,9 +40,7 @@ if [ "$1" == "postdpkg" ]; then
 			fi
 		done
 
-		if [ "$ALLUPDATED" == "true" ]; then
-			echo "" > "$STATEFILE"
-		fi
+		[ "$ALLUPDATED" == "true" ] && echo "" > "$STATEFILE"
 	fi
 
 	exit

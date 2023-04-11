@@ -21,22 +21,14 @@ if { [ -f "$STATEFILE" ] && [ ! -w "$STATEFILE" ]; } || [ ! -w "$(dirname $STATE
 	exit 1
 fi
 
-if [ ! -d "$(dirname $STATEFILE)" ] ; then
-	mkdir -p "$(dirname $STATEFILE)"
-fi
-
-if [ ! -f "$STATEFILE" ] ; then
-	pihole -v -c | awk '{print $5}' > "$STATEFILE"
-fi
+[ ! -d "$(dirname $STATEFILE)" ] && mkdir -p "$(dirname $STATEFILE)"
+[ ! -f "$STATEFILE" ] && pihole -v -c | awk '{print $5}' > "$STATEFILE"
 
 OLDSTATE=$(cat "$STATEFILE")
 CURRENT=$(pihole -v -c | awk '{print $5}' | sed 's/\.$//g')
 STATE=$(pihole -v -l | awk '{print $5}')
 
-if echo "$STATE" | grep -q "Invalid Option\|\-v\|N\/A" ; then
-	echo 'Invalid output - unable to parse'
-	exit 1
-fi
+{ echo "$STATE" | grep -q "Invalid Option\|\-v\|N\/A"; } && { echo 'Invalid output - unable to parse'; exit 1; }
 
 if [ "$OLDSTATE" != "$STATE" ]; then
 	if [ "$CURRENT" != "$STATE" ]; then
