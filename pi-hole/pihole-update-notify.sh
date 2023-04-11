@@ -16,7 +16,7 @@
 
 STATEFILE=/etc/pihole/update-notify.state
 
-if { [ -f "$STATEFILE" ] && [ ! -w "$STATEFILE" ] ; } || [ ! -w "$(dirname $STATEFILE)" ] ; then
+if { [ -f "$STATEFILE" ] && [ ! -w "$STATEFILE" ]; } || [ ! -w "$(dirname $STATEFILE)" ] ; then
 	echo "Unable to obtain read-write access to $STATEFILE"
 	exit 1
 fi

@@ -413,7 +413,7 @@ if [ "$LAN_ONLY" = true ] && [ "$DEVICE_ONLY" = true ]; then
     error "You cannot use --lan-only and --device-only together" true
 fi
 
-if { [ "$VERBOSE" = true ] || [ "$DEBUG" = true ] ; } && [ "$QUIET" = true ]; then
+if { [ "$VERBOSE" = true ] || [ "$DEBUG" = true ]; } && [ "$QUIET" = true ]; then
     VERBOSE=false
     DEBUG=false
 fi
@@ -560,7 +560,7 @@ if [ "$IPV6" = true ]; then
     fi
 fi
 
-if { [ -n "$IN_INET_CONF" ] || [ -n "$IN_INET_CONF" ] ; }; then
+if { [ -n "$IN_INET_CONF" ] || [ -n "$IN_INET_CONF" ]; }; then
     error "Unable to find interface $IN_INTERFACE - reading from configuration file /etc/wireguard/$IN_INTERFACE.conf"
 fi
 
