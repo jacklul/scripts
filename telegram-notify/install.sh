@@ -13,33 +13,26 @@ set -e
 
 MISSING_FILES=0
 for FILE in "${REQUIRED_FILES[@]}"; do
-	if [ ! -f "$SPATH/$FILE" ]; then
-		MISSING_FILES=$((MISSING_FILES+1))
-	fi
+    [ ! -f "$SPATH/$FILE" ] && MISSING_FILES=$((MISSING_FILES+1))
 done
 
 if [ "$MISSING_FILES" -gt 0 ]; then
-	if [ "$MISSING_FILES" != "${#MISSING_FILES[@]}" ]; then
-		mkdir -v "$SPATH/$DOWNLOAD_PATH"
-		SPATH="$SPATH/$DOWNLOAD_PATH"
-	fi
+    if [ "$MISSING_FILES" != "${#MISSING_FILES[@]}" ]; then
+        mkdir -v "$SPATH/$DOWNLOAD_PATH"
+        SPATH="$SPATH/$DOWNLOAD_PATH"
+    fi
 
-	for FILE in "${REQUIRED_FILES[@]}"; do
+    for FILE in "${REQUIRED_FILES[@]}"; do
 		if [ ! -f "$SPATH/$FILE" ]; then
-			if [ "$FILE" = "telegram-notify.sh" ] &&  wget -nv -O "$SPATH/telegram-notify.sh" "$DOWNLOAD_URL_ORIGINAL/telegram-notify"; then
-				continue
-			fi
+			[ "$FILE" = "telegram-notify.sh" ] && wget -nv -O "$SPATH/telegram-notify.sh" "$DOWNLOAD_URL_ORIGINAL/telegram-notify" && continue
 			
 			wget -nv -O "$SPATH/$FILE" "$DOWNLOAD_URL/$FILE"
 		fi
-	done
+    done
 fi
 
 for FILE in "${REQUIRED_FILES[@]}"; do
-	if [ ! -f "$SPATH/$FILE" ]; then
-		echo "Missing required file for installation: $FILE"
-		exit 1
-	fi
+    [ ! -f "$SPATH/$FILE" ] && { echo "Missing required file for installation: $FILE"; exit 1; }
 done
 
 cp -v "$SPATH/telegram-notify.sh" /usr/local/bin/telegram-notify && \

@@ -15,29 +15,22 @@ set -e
 
 MISSING_FILES=0
 for FILE in "${REQUIRED_FILES[@]}"; do
-	if [ ! -f "$SPATH/$FILE" ]; then
-		MISSING_FILES=$((MISSING_FILES+1))
-	fi
+    [ ! -f "$SPATH/$FILE" ] && MISSING_FILES=$((MISSING_FILES+1))
 done
 
 if [ "$MISSING_FILES" -gt 0 ]; then
-	if [ "$MISSING_FILES" != "${#MISSING_FILES[@]}" ]; then
-		mkdir -v "$SPATH/$DOWNLOAD_PATH"
-		SPATH="$SPATH/$DOWNLOAD_PATH"
-	fi
+    if [ "$MISSING_FILES" != "${#MISSING_FILES[@]}" ]; then
+        mkdir -v "$SPATH/$DOWNLOAD_PATH"
+        SPATH="$SPATH/$DOWNLOAD_PATH"
+    fi
 
-	for FILE in "${REQUIRED_FILES[@]}"; do
-		if [ ! -f "$SPATH/$FILE" ]; then
-			wget -nv -O "$SPATH/$FILE" "$DOWNLOAD_URL/$FILE"
-		fi
-	done
+    for FILE in "${REQUIRED_FILES[@]}"; do
+        [ ! -f "$SPATH/$FILE" ] && wget -nv -O "$SPATH/$FILE" "$DOWNLOAD_URL/$FILE"
+    done
 fi
 
 for FILE in "${REQUIRED_FILES[@]}"; do
-	if [ ! -f "$SPATH/$FILE" ]; then
-		echo "Missing required file for installation: $FILE"
-		exit 1
-	fi
+    [ ! -f "$SPATH/$FILE" ] && { echo "Missing required file for installation: $FILE"; exit 1; }
 done
 
 if [ "$UID" -eq 0 ]; then
