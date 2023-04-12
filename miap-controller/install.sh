@@ -1,5 +1,7 @@
 #!/bin/bash
 
+command -v php >/dev/null 2>&1 || { echo "Command 'php' not found!"; exit 1; }
+
 SPATH=$(dirname "$0")
 REQUIRED_FILES=( miap-controller.phar miap-controller.conf.example )
 DOWNLOAD_PATH=miap-controller

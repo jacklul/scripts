@@ -1,6 +1,7 @@
 #!/bin/bash
 
 [ "$UID" -eq 0 ] && { echo "This cannot be run as root!"; exit 1; }
+command -v php >/dev/null 2>&1 || { echo "Command 'php' not found!"; exit 1; }
 
 SPATH=$(dirname "$0")
 REQUIRED_FILES=( fmovies-watchlist.php fmovies-watchlist.service fmovies-watchlist.timer fmovies-watchlist.conf.example )
