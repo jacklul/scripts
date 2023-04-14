@@ -25,12 +25,14 @@ fi
 
 if [ "$1" == "postdpkg" ]; then
 	if [ -s "$STATEFILE" ]; then
-		readarray -t STATEARRAY < $STATEFILE
+		readarray -t STATEARRAY < "$STATEFILE"
 
 		ALLUPDATED=true
 
 		for i in "${STATEARRAY[@]}"; do
 			PACKAGE=$(echo "$i" | awk -F'/' '{print $1}')
+			[ -z "$PACKAGE" ] && continue
+
 			NEWVERSION=$(echo "$i" | awk '{print $2}')
 			CURVERSION=$(dpkg -s "$PACKAGE" | grep '^Version:' | awk '{print $2}')
 
@@ -50,7 +52,7 @@ OLDSTATE=$(cat "$STATEFILE")
 STATE=$(apt list --upgradable 2> /dev/null | awk '{if(NR>1)print}' | awk -F '\[upgradable from' '{print $1}' | awk '{print $1,$2}')
 
 if [ "$OLDSTATE" != "$STATE" ]; then
-	if [ "$STATE" != "" ]; then
+	if [ -n "$STATE" ]; then
 		COUNT=$(echo "$STATE" | wc -l)
 		MESSAGE=$([ "$COUNT" -gt 1 ] && echo "There are $COUNT updates available:" || echo "There is 1 update available:")
 
