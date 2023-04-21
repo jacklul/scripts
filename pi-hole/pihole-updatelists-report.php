@@ -4,6 +4,7 @@
 #
 # /opt/helpers/pihole-updatelists-report.php
 #
+# Prints a simple report after updating the lists
 # To be used wit https://github.com/jacklul/pihole-updatelists
 #
 # Override pihole-updatelists.service:
