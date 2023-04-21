@@ -2,12 +2,12 @@
 <?php
 # Made by Jack'lul <jacklul.github.io>
 #
-# /opt/helpers/pihole-missing-names.php
+# /opt/helpers/pihole-update-hostnames.php
 #
 # Assign hostnames (from static DHCP page) when Pi-hole is not used as the DHCP server
 #
 # Run it hourly:
-# sudo ln -s /opt/helpers/pihole-missing-names.php /etc/cron.hourly/pihole-missing-names
+# sudo ln -s /opt/helpers/pihole-update-hostnames.php /etc/cron.hourly/pihole-update-hostnames
 
 define('DATABASE', '/etc/pihole/pihole-FTL.db');
 define('CONFIG_MAIN', '/etc/dnsmasq.d/01-pihole.conf');
