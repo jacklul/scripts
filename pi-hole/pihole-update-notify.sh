@@ -8,7 +8,7 @@
 # Ideally you should create a dedicated timer and service for this
 # and disable "updatechecker" cron entries in /etc/cron.d/pihole
 # but you can also just use cron for this:
-#  @hourly /opt/helpers/pihole-update-notify.sh
+#  sudo ln -s /opt/helpers/pihole-update-notify.php /etc/cron.hourly/pihole-update-notify
 # OR
 # Override pihole-updatechecker.service:
 #  [Service]
