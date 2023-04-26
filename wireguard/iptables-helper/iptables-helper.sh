@@ -246,9 +246,12 @@ is_number()
 # Look for "state RELATED,ESTABLISHED" and "state INVALID" rules at the beggining and return line number after those
 get_line_number_states() {
     local CMD=$1
-    local HAS_ACCEPT_STATE=$($CMD -L INPUT -nv --line-numbers | grep "state RELATED,ESTABLISHED" | awk '{print $1}' | head -1)
-    local HAS_INVALID_STATE=$($CMD -L INPUT -nv --line-numbers | grep "state INVALID" | awk '{print $1}' | head -1)
+    local CHAIN=$2
+    local HAS_ACCEPT_STATE=$($CMD -L "$CHAIN" -nv --line-numbers | grep "state RELATED,ESTABLISHED" | awk '{print $1}' | head -1)
+    local HAS_INVALID_STATE=$($CMD -L "$CHAIN" -nv --line-numbers | grep "state INVALID" | awk '{print $1}' | head -1)
     local LINE=1
+
+    [ -z "$CHAIN" ] && CHAIN="INPUT"
 
     if [ -n "$HAS_ACCEPT_STATE" ]; then
         if [ -n "$HAS_INVALID_STATE" ]; then
@@ -273,15 +276,18 @@ get_line_number_states() {
 # Look for drop or reject rules at the end of the table and return line number before those
 get_line_number_end() {
     local CMD=$1
-    local LINESSKIP=$2
+    local CHAIN=$2
+    local LINESSKIP=$3
     local LINE=1
+
+    [ -z "$CHAIN" ] && CHAIN="INPUT"
 
     # Skip number of lines provided
     if [ -n "$LINESSKIP" ]; then
         LINE=$LINESSKIP
     fi
 
-    local LIST="$($CMD -L INPUT -nv --line-numbers)"
+    local LIST="$($CMD -L "$CHAIN" -nv --line-numbers)"
     local CHECK="$(echo "$LIST" | tail -n +$((LINE+2)) | grep -v "policy" | grep "DROP\|REJECT" | head -1 | awk '{print $1}')"
 
     if [ -n "$CHECK" ]; then
@@ -448,6 +454,8 @@ else
 
     exit 1
 fi
+
+[ "$QUIET" != true ] && echo "Preparing..."
 
 # Grab data from the configuration file
 WG_CONF=$(cat "/etc/wireguard/$IN_INTERFACE.conf")
@@ -638,16 +646,16 @@ CHECK_FOR_PORT_RULE=$(iptables -L | grep :"$PORT" | grep ACCEPT)
 if [ "$INPUT_POLICY" != "ACCEPT" ] && [ -z "$CHECK_FOR_PORT_RULE" ]; then
     [ "$QUIET" != true ] && echo "Server port"
 
-    get_line_number_states "$IPT"
+    get_line_number_states "$IPT" "INPUT"
     STATES_LINE=$?
     if [ "$STATES_LINE" -gt "1" ]; then
-        get_line_number_end "$IPT" "$STATES_LINE"
+        get_line_number_end "$IPT" "INPUT" "$STATES_LINE"
         END_LINE=$?
         if [ "$END_LINE" -gt "$STATES_LINE" ]; then
             LINE=$END_LINE
         fi
     else
-        get_line_number_end "$IPT"
+        get_line_number_end "$IPT" "INPUT"
         LINE=$END_LINE
     fi
 
@@ -655,16 +663,16 @@ if [ "$INPUT_POLICY" != "ACCEPT" ] && [ -z "$CHECK_FOR_PORT_RULE" ]; then
 
     CHECK_FOR_PORT_RULE6=$(ip6tables -L | grep :"$PORT" | grep ACCEPT)
     if [ -z "$CHECK_FOR_PORT_RULE6" ] && [ "$INPUT_POLICY6" != "ACCEPT" ] && [ "$IPV6" = true ]; then
-        get_line_number_states "$IPT6"
+        get_line_number_states "$IPT6" "INPUT"
         STATES_LINE=$?
         if [ "$STATES_LINE" -gt "1" ]; then
-            get_line_number_end "$IPT6" "$STATES_LINE"
+            get_line_number_end "$IPT6" "INPUT" "$STATES_LINE"
             END_LINE=$?
             if [ "$END_LINE" -gt "$STATES_LINE" ]; then
                 LINE=$END_LINE
             fi
         else
-            get_line_number_end "$IPT6"
+            get_line_number_end "$IPT6" "INPUT"
             LINE=$END_LINE
         fi
 
@@ -878,7 +886,7 @@ fi
 if [ "$DNS_ONLY" = true ]; then
     [ "$QUIET" != true ] && echo "Access to DNS only on this device"
 
-    get_line_number_states "$IPT"
+    get_line_number_states "$IPT" "INPUT"
     LINE=$?
 
     if ! chain_exists "$IPT" "DNSONLY_$IN_INTERFACE_UPPER"; then
@@ -898,7 +906,7 @@ if [ "$DNS_ONLY" = true ]; then
     fi
 
     if [ "$IN_IPV6" = true ]; then
-        get_line_number_states "$IPT6"
+        get_line_number_states "$IPT6" "INPUT"
         LINE=$?
 
         if ! chain_exists "$IPT6" "DNSONLY_$IN_INTERFACE_UPPER"; then
