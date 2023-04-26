@@ -31,6 +31,7 @@ LAN_ONLY=false
 DEVICE_ONLY=false
 DNS_ONLY=false
 FORCE_DNS=""
+FORCE_DNS6=""
 IPV6=false
 IN_IPV6=false
 OUT_IPV6=false
@@ -345,6 +346,11 @@ while [[ $# -gt 0 ]]; do
             shift
             shift
         ;;
+        -k|--force-dns-ipv6)
+            FORCE_DNS6="${2}"
+            shift
+            shift
+        ;;
         -6|--ipv6)
             IPV6=true
             shift
@@ -380,7 +386,8 @@ while [[ $# -gt 0 ]]; do
             echo " -l, --lan-only                 Prevent clients from accessing internet"
             echo " -f, --device-only              Prevent clients from accessing anything but this device"
             echo " -p, --dns-only                 Prevent clients from accessing services other than DNS on this device"
-            echo " -n, --force-dns [DNS]          Force clients to use specified DNS (IPv4 only)"
+            echo " -n, --force-dns [DNS]          Force clients to use specified DNS server (IPv4)"
+            echo " -a, --force-dns6 [DNS]         Force clients to use specified DNS server (IPv6)"
             echo " -6, --ipv6                     Enable IPv6 support"
             echo " -b, --no-out-check             Do not verify whenever outgoing interface is connected"
             echo " -d, --debug                    Show debug information and log dropped packets"
@@ -946,25 +953,58 @@ if [ -n "$FORCE_DNS" ]; then
         remove_chain "$IPT" "BLOCKDOT"
     fi
 
-    # IPv6 is not supported so completely block instead
     if [ "$IN_IPV6" = true ]; then
-        FORWARD_LINE6="$($IPT6 -L FORWARD -nv --line-numbers | grep "FORWARD_$IN_INTERFACE_UPPER" | head -1 | awk '{print $1}')"
-        if [ -z "$FORWARD_LINE6" ]; then
-            FORWARD_LINE6=1
-        fi
+        if [ -z "$FORCE_DNS6" ]; then
+            [ "$QUIET" != true ] && echo "Blocking DNS access for IPv6..."
 
-        if ! chain_exists "$IPT6" "BLOCKDNS"; then
-            rule "$IPT6" "-N" "BLOCKDNS"
-            rule "$IPT6" "-A" "BLOCKDNS -p udp --dport 53 -j REJECT"
-            rule "$IPT6" "-A" "BLOCKDNS -p tcp --dport 53 -j REJECT"
-            rule "$IPT6" "-A" "BLOCKDNS -p tcp --dport 853 -j REJECT"
-            rule "$IPT6" "-A" "BLOCKDNS -j RETURN"
-        fi
+            FORWARD_LINE6="$($IPT6 -L FORWARD -nv --line-numbers | grep "FORWARD_$IN_INTERFACE_UPPER" | head -1 | awk '{print $1}')"
+            if [ -z "$FORWARD_LINE6" ]; then
+                FORWARD_LINE6=1
+            fi
 
-        rule "$IPT6" "-I" "$FORWARD_LINE6" "FORWARD -i $IN_INTERFACE -j BLOCKDNS"
+            if ! chain_exists "$IPT6" "BLOCKDNS"; then
+                rule "$IPT6" "-N" "BLOCKDNS"
+                rule "$IPT6" "-A" "BLOCKDNS -p udp --dport 53 -j REJECT"
+                rule "$IPT6" "-A" "BLOCKDNS -p tcp --dport 53 -j REJECT"
+                rule "$IPT6" "-A" "BLOCKDNS -p tcp --dport 853 -j REJECT"
+                rule "$IPT6" "-A" "BLOCKDNS -j RETURN"
+            fi
 
-        if [ "$ACTION" = "down" ] && ! is_chain_used "$IPT6" "BLOCKDNS"; then
-            remove_chain "$IPT6" "BLOCKDNS"
+            rule "$IPT6" "-I" "$FORWARD_LINE6" "FORWARD -i $IN_INTERFACE -j BLOCKDNS"
+
+            if [ "$ACTION" = "down" ] && ! is_chain_used "$IPT6" "BLOCKDNS"; then
+                remove_chain "$IPT6" "BLOCKDNS"
+            fi
+        else
+            if ! chain_exists "$IPT6" "FORCEDNS_$IN_INTERFACE_UPPER -t nat"; then
+                rule "$IPT6" "-N" "FORCEDNS_$IN_INTERFACE_UPPER -t nat"
+                rule "$IPT6" "-A" "FORCEDNS_$IN_INTERFACE_UPPER -t nat -p udp --dport 53 -j DNAT --to-destination $FORCE_DNS6"
+                rule "$IPT6" "-A" "FORCEDNS_$IN_INTERFACE_UPPER -t nat -p tcp --dport 53 -j DNAT --to-destination $FORCE_DNS6"
+                rule "$IPT6" "-A" "FORCEDNS_$IN_INTERFACE_UPPER -t nat -j RETURN"
+            fi
+
+            rule "$IPT6" "-A" "PREROUTING -t nat -i $IN_INTERFACE -j FORCEDNS_$IN_INTERFACE_UPPER"
+
+            if [ "$ACTION" = "down" ] && ! is_chain_used "$IPT6" "FORCEDNS_$IN_INTERFACE_UPPER -t nat"; then
+                remove_chain "$IPT6" "FORCEDNS_$IN_INTERFACE_UPPER -t nat"
+            fi
+
+            if ! chain_exists "$IPT6" "BLOCKDOT"; then
+                rule "$IPT6" "-N" "BLOCKDOT"
+                rule "$IPT6" "-A" "BLOCKDOT -p tcp --dport 853 -j REJECT"
+                rule "$IPT6" "-A" "BLOCKDOT -j RETURN"
+            fi
+
+            FORWARD_LINE="$($IPT -L FORWARD -nv --line-numbers | grep "FORWARD_$IN_INTERFACE_UPPER" | head -1 | awk '{print $1}')"
+            if [ -z "$FORWARD_LINE" ]; then
+                FORWARD_LINE=1
+            fi
+
+            rule "$IPT" "-I" "$FORWARD_LINE" "FORWARD -i $IN_INTERFACE -j BLOCKDOT"
+
+            if [ "$ACTION" = "down" ] && ! is_chain_used "$IPT" "BLOCKDOT"; then
+                remove_chain "$IPT" "BLOCKDOT"
+            fi
         fi
     fi
 fi
