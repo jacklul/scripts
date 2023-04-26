@@ -1027,7 +1027,13 @@ fi
 
 # Force all clients to use specified DNS server
 if [ -n "$FORCE_DNS" ]; then
-    [ "$QUIET" != true ] && echo "Force all clients to use DNS server: $FORCE_DNS"
+    if [ "$QUIET" != true ]; then
+        if [ -n "$FORCE_DNS6" ]; then
+            echo "Force all clients to use DNS servers: $FORCE_DNS, $FORCE_DNS6"
+        else
+            echo "Force all clients to use DNS server: $FORCE_DNS"
+        fi
+    fi
 
     if ! chain_exists "$IPT" "FORCEDNS_$IN_INTERFACE_UPPER -t nat"; then
         rule "$IPT" "-N" "FORCEDNS_$IN_INTERFACE_UPPER -t nat"
@@ -1101,15 +1107,15 @@ if [ -n "$FORCE_DNS" ]; then
                 rule "$IPT6" "-A" "BLOCKDOT -j RETURN"
             fi
 
-            FORWARD_LINE="$($IPT -L FORWARD -nv --line-numbers | grep "FORWARD_$IN_INTERFACE_UPPER" | head -1 | awk '{print $1}')"
+            FORWARD_LINE="$($IPT6 -L FORWARD -nv --line-numbers | grep "FORWARD_$IN_INTERFACE_UPPER" | head -1 | awk '{print $1}')"
             if [ -z "$FORWARD_LINE" ]; then
                 FORWARD_LINE=1
             fi
 
-            rule "$IPT" "-I" "$FORWARD_LINE" "FORWARD -i $IN_INTERFACE -j BLOCKDOT"
+            rule "$IPT6" "-I" "$FORWARD_LINE" "FORWARD -i $IN_INTERFACE -j BLOCKDOT"
 
-            if [ "$ACTION" = "down" ] && ! is_chain_used "$IPT" "BLOCKDOT"; then
-                remove_chain "$IPT" "BLOCKDOT"
+            if [ "$ACTION" = "down" ] && ! is_chain_used "$IPT6" "BLOCKDOT"; then
+                remove_chain "$IPT6" "BLOCKDOT"
             fi
         fi
     fi
