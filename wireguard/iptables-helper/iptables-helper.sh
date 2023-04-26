@@ -36,6 +36,8 @@ IPV6=false
 IN_IPV6=false
 OUT_IPV6=false
 OUT_CHECK=true
+IN_ONLY=false
+OUT_ONLY=false
 VERBOSE=false
 DEBUG=false
 TEST=false
@@ -365,6 +367,14 @@ while [[ $# -gt 0 ]]; do
             VERBOSE=true
             shift
         ;;
+        -g|--in-only)
+            IN_ONLY=true
+            shift
+        ;;
+        -j|--out-only)
+            OUT_ONLY=true
+            shift
+        ;;
         -d|--debug)
             DEBUG=true
             shift
@@ -396,6 +406,8 @@ while [[ $# -gt 0 ]]; do
             echo " -a, --force-dns6 [DNS]         Force clients to use specified DNS server (IPv6)"
             echo " -6, --ipv6                     Enable IPv6 support"
             echo " -b, --no-out-check             Do not verify whenever outgoing interface is connected"
+            echo " -g, --in-only                  Only allow incoming traffic"
+            echo " -j, --out-only                 Only allow outgoing traffic"
             echo " -d, --debug                    Show debug information and log dropped packets"
             echo " -v, --verbose                  Show more operational information"
             echo " -t, --test                     Test mode - no rules will be executed"
@@ -424,6 +436,18 @@ fi
 
 if [ "$LAN_ONLY" = true ] && [ "$DEVICE_ONLY" = true ]; then
     error "You cannot use --lan-only and --device-only together" true
+fi
+
+if [ "$IN_ONLY" = true ] && [ "$OUT_ONLY" = true ]; then
+    error "You cannot use --in-only and --out-only together" true
+fi
+
+if [ "$OUT_ONLY" = true ] && [ "$DEVICE_ONLY" = true ]; then
+    error "You cannot use ---out-only and --device-only together" true
+fi
+
+if [ "$OUT_ONLY" = true ] && [ "$DNS_ONLY" = true ]; then
+    error "You cannot use ---out-only and --dns-only together" true
 fi
 
 if { [ "$VERBOSE" = true ] || [ "$DEBUG" = true ]; } && [ "$QUIET" = true ]; then
@@ -923,6 +947,80 @@ if [ "$DNS_ONLY" = true ]; then
 
         if [ "$ACTION" = "down" ] && ! is_chain_used "$IPT6" "DNSONLY_$IN_INTERFACE_UPPER"; then
             remove_chain "$IPT6" "DNSONLY_$IN_INTERFACE_UPPER"
+        fi
+    fi
+fi
+
+# Only allow incoming traffic
+if [ "$IN_ONLY" = true ]; then
+    [ "$QUIET" != true ] && echo "Only allow incoming traffic"
+
+    get_line_number_states "$IPT" "OUTPUT"
+    LINE=$?
+
+    if ! chain_exists "$IPT" "BLOCKOUT_$IN_INTERFACE_UPPER"; then
+        rule "$IPT" "-N" "BLOCKOUT_$IN_INTERFACE_UPPER"
+        rule "$IPT" "-A" "BLOCKOUT_$IN_INTERFACE_UPPER -m state --state RELATED,ESTABLISHED -j ACCEPT"
+        rule "$IPT" "-A" "BLOCKOUT_$IN_INTERFACE_UPPER -j DROP"
+    fi
+
+    rule "$IPT" "-I" $LINE "OUTPUT -o $IN_INTERFACE -j BLOCKOUT_$IN_INTERFACE_UPPER"
+
+    if [ "$ACTION" = "down" ] && ! is_chain_used "$IPT" "BLOCKOUT_$IN_INTERFACE_UPPER"; then
+        remove_chain "$IPT" "BLOCKOUT_$IN_INTERFACE_UPPER"
+    fi
+
+    if [ "$IN_IPV6" = true ]; then
+        get_line_number_states "$IPT6" "OUTPUT"
+        LINE=$?
+
+        if ! chain_exists "$IPT6" "BLOCKOUT_$IN_INTERFACE_UPPER"; then
+            rule "$IPT6" "-N" "BLOCKOUT_$IN_INTERFACE_UPPER"
+            rule "$IPT6" "-A" "BLOCKOUT_$IN_INTERFACE_UPPER -m state --state RELATED,ESTABLISHED -j ACCEPT"
+            rule "$IPT6" "-A" "BLOCKOUT_$IN_INTERFACE_UPPER -j DROP"
+        fi
+
+        rule "$IPT6" "-I" $LINE "OUTPUT -o $IN_INTERFACE -j BLOCKOUT_$IN_INTERFACE_UPPER"
+
+        if [ "$ACTION" = "down" ] && ! is_chain_used "$IPT6" "BLOCKOUT_$IN_INTERFACE_UPPER"; then
+            remove_chain "$IPT6" "BLOCKOUT_$IN_INTERFACE_UPPER"
+        fi
+    fi
+fi
+
+# Only allow outgoing traffic
+if [ "$OUT_ONLY" = true ]; then
+    [ "$QUIET" != true ] && echo "Only allow outgoing traffic"
+
+    get_line_number_states "$IPT" "INPUT"
+    LINE=$?
+
+    if ! chain_exists "$IPT" "BLOCKIN_$IN_INTERFACE_UPPER"; then
+        rule "$IPT" "-N" "BLOCKIN_$IN_INTERFACE_UPPER"
+        rule "$IPT" "-A" "BLOCKIN_$IN_INTERFACE_UPPER -m state --state RELATED,ESTABLISHED -j ACCEPT"
+        rule "$IPT" "-A" "BLOCKIN_$IN_INTERFACE_UPPER -j DROP"
+    fi
+
+    rule "$IPT" "-I" $LINE "INPUT -i $IN_INTERFACE -j BLOCKIN_$IN_INTERFACE_UPPER"
+    
+    if [ "$ACTION" = "down" ] && ! is_chain_used "$IPT" "BLOCKIN_$IN_INTERFACE_UPPER"; then
+        remove_chain "$IPT" "BLOCKIN_$IN_INTERFACE_UPPER"
+    fi
+
+    if [ "$IN_IPV6" = true ]; then
+        get_line_number_states "$IPT6" "INPUT"
+        LINE=$?
+
+        if ! chain_exists "$IPT6" "BLOCKIN_$IN_INTERFACE_UPPER"; then
+            rule "$IPT6" "-N" "BLOCKIN_$IN_INTERFACE_UPPER"
+            rule "$IPT6" "-A" "BLOCKIN_$IN_INTERFACE_UPPER -m state --state RELATED,ESTABLISHED -j ACCEPT"
+            rule "$IPT6" "-A" "BLOCKIN_$IN_INTERFACE_UPPER -j DROP"
+        fi
+
+        rule "$IPT6" "-I" $LINE "INPUT -i $IN_INTERFACE -j BLOCKIN_$IN_INTERFACE_UPPER"
+            
+        if [ "$ACTION" = "down" ] && ! is_chain_used "$IPT6" "BLOCKIN_$IN_INTERFACE_UPPER"; then
+            remove_chain "$IPT6" "BLOCKIN_$IN_INTERFACE_UPPER"
         fi
     fi
 fi
