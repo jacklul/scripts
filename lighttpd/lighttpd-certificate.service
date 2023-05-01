@@ -1,0 +1,6 @@
+[Unit]
+Description=Renew certificate for lighttpd
+
+[Service]
+ExecStart=/etc/lighttpd/certs/gencert.sh -g -b -n lighttpd -t 365 -f
+ExecStartPost=-/bin/bash -c "[ ! -L \"/etc/lighttpd/server.pem\" ] || [ ! -e \"/etc/lighttpd/server.pem\" ] && rm -vfr /etc/lighttpd/server.pem && ln -vs /etc/lighttpd/certs/lighttpd.pem /etc/lighttpd/server.pem"
