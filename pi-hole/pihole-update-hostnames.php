@@ -6,11 +6,12 @@
 #
 # Assign hostnames (from static DHCP page) when Pi-hole is not used as the DHCP server
 #
-# Run it hourly:
+# Override pihole-FTL.service:
+#  [Service]
+#  ExecStartPre=-/opt/helpers/pihole-update-hostnames.php
+#
+# You could also run it hourly: (not required - just clicking Save on static DHCP leases page is enough)
 #  sudo ln -s /opt/helpers/pihole-update-hostnames.php /etc/cron.hourly/pihole-update-hostnames
-# OR every minute:
-# sudo sh -c "echo '*/1 *   * * *   root   php /opt/helpers/pihole-update-hostnames.php' > /etc/cron.d/pihole-update-hostnames"
-# Ideally you would want to run it at intervals matching Pi-hole's DBINTERVAL value
 
 define('CONFIG', '/etc/dnsmasq.d/10-static-hosts.conf');
 define('HOSTS', '/etc/pihole/static-hosts.list');
