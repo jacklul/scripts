@@ -1,0 +1,3 @@
+channels="twitch"
+command="/usr/local/bin/telegram-notify --quiet --html --disable_preview --icon 1F4FA --title \"Twitch Live notification @ $(hostname -f)\" --text \"#TEXT#\""
+user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"

@@ -1,0 +1,6 @@
+[Unit]
+Description=Twitch Live notifier
+
+[Service]
+Type=simple
+ExecStart=php %h/.local/bin/twitch-live-notify
