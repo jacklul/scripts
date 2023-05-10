@@ -38,6 +38,7 @@ cp -v "$SPATH/showRSS.service" ~/.config/systemd/user/ && chmod 644 ~/.config/sy
 cp -v "$SPATH/showRSS.timer" ~/.config/systemd/user/ && chmod 644 ~/.config/systemd/user/showRSS.timer
 
 if [ ! -f "/home/$USER/.config/showRSS/showRSS.conf" ] && [ -f "$SPATH/showRSS.conf.example" ]; then
+    mkdir -p "/home/$USER/.config/showRSS"
 	cp -v "$SPATH/showRSS.conf.example" "/home/$USER/.config/showRSS/showRSS.conf"
 fi
 

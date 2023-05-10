@@ -38,6 +38,7 @@ cp -v "$SPATH/fmovies-watchlist.service" ~/.config/systemd/user/ && chmod 644 ~/
 cp -v "$SPATH/fmovies-watchlist.timer" ~/.config/systemd/user/ && chmod 644 ~/.config/systemd/user/fmovies-watchlist.timer
 
 if [ ! -f "/home/$USER/.config/fmovies-watchlist/fmovies-watchlist.conf" ] && [ -f "$SPATH/fmovies-watchlist.conf.example" ]; then
+    mkdir -p "/home/$USER/.config/fmovies-watchlist"
 	cp -v "$SPATH/fmovies-watchlist.conf.example" "/home/$USER/.config/fmovies-watchlist/fmovies-watchlist.conf"
 fi
 
