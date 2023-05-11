@@ -33,6 +33,7 @@ See [twitch-live-notify.conf.example](twitch-live-notify.conf.example) for an ex
 
 | Variable | Default | Description |
 |---|---|---|
-| `channels` | `` | The channel usernames, separated by comma |
+| `channels` | `` | The channel usernames, separated by comma or whitespace, max 100 |
+| `client_id` | `` | Client ID, obtained by registering an application |
+| `client_secret` | `` |  Client secret, obtained by registering an application |
 | `command` | `null` | The command that sends the notification |
-| `user_agent` | `` | HTTP user-agent to use in case you're being blocked |

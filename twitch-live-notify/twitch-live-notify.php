@@ -19,9 +19,14 @@ if (isset($argv[1]) && file_exists($argv[1])) {
     }
 }
 
+if (empty($config['client_id']) || empty($config['client_secret'])) {
+	echo 'Authentication credentials not set' . PHP_EOL;
+	exit(1);
+}
+
 $channels = [];
 if (!empty($config['channels'])) {
-    $channels = explode(',', $config['channels']);
+    $channels = preg_split('/\s+|,/', strtolower($config['channels']));
 }
 
 $cachefile = pathinfo($configfile);
@@ -32,60 +37,111 @@ if (file_exists($cachefile)) {
     $cache = $cacheprev = json_decode(file_get_contents($cachefile), true);
 }
 
-function file_get_contents_($url, $user_agent = null) {
-    if (!empty($user_agent)) {
-        return file_get_contents($url, false, stream_context_create([
-            'http' => [
-                'user_agent' => $user_agent
-            ]
-        ]));
-    } else {
-        return file_get_contents($url);
-    }
+$saveCache = function(array $cache) use ($cachefile, $cacheprev, $config): ?bool {
+	if ($cache != $cacheprev) {
+		foreach ($cache as $key => $val) {
+			if (substr($key, 0, 1) !== '_' && strpos($config['channels'], $key) === false) {
+				unset($cache[$key]);
+			}
+		}
+
+		return file_put_contents($cachefile, json_encode($cache));
+	}
+	
+	return null;
+};
+
+$access_token = $cache['__access_token'] ?? null;
+$access_token_expires = $cache['__access_token_expires'] ?? 0;
+
+$authorize = function() use ($config, &$cache, $saveCache): void {
+	$data = file_get_contents('https://id.twitch.tv/oauth2/token?client_id=' . $config['client_id'] . '&client_secret=' . $config['client_secret'] . '&grant_type=client_credentials', false, stream_context_create([
+		'http' => [
+			'method'  => 'POST',
+		]
+	]));
+
+	if (strpos($data, 'access_token') !== false) {
+		$auth_json = json_decode($data, true);
+		
+		$cache['__access_token'] = $auth_json['access_token'];
+		$cache['__access_token_expires'] = time() + $auth_json['expires_in'] - 60;
+		
+		$saveCache($cache);
+	} else {
+		exit(1);
+	}
+};
+
+if (empty($access_token) || time() >= $access_token_expires) {
+	$authorize();
+	$access_token = $cache['__access_token'];
+	$access_token_expires = $cache['__access_token_expires'];
 }
 
-$live = [];
-foreach ($channels as $channel) {
-    $channel = trim($channel);
+$getLiveChannels = function() use ($access_token, $channels, $config): ?array {
+	$retry = false;
 
-    echo 'Checking channel "' . $channel . '"...';
+	do {
+		$query = '';
+		foreach ($channels as $channel) {
+			if (!empty($query)) $query .= '&';
+			$channel = trim($channel);
+			$query .= 'user_login=' . $channel;
+		}
+	
+		$data = file_get_contents('https://api.twitch.tv/helix/streams?' . $query, false, stream_context_create([
+			'http' => [
+				'method'  => 'GET',
+				'header' => 'Authorization: Bearer ' . $access_token . PHP_EOL . 'Client-Id: ' . $config['client_id']
+			]
+		]));
+		
+		if (empty($data) && strpos(error_get_last()['message'], '401 Unauthorized') !== false) {
+			if ($retry) {
+				return null;
+			}
+			
+			$retry = true;
+			continue;
+		}
+		
+		$json = json_decode($data, true);
+		
+		$live = [];
+		foreach ($json['data'] as $stream) {
+			$live[$stream['user_login']] = $stream['started_at'];
+		}
+		
+		return $live;
+	} while ($retry);
+};
 
-    $data = file_get_contents_('https://www.twitch.tv/' . $channel, $config['user_agent'] ?? null);
+$live = $getLiveChannels();
+$notify_live = [];
 
-    preg_match('/<script type="application\/ld\+json">(.*)<\/script>/U', $data, $matches);
+foreach ($live as $channel => $started_at) {
+	if (!isset($cache[$channel]) || $cache[$channel] < $started_at) {
+		if (!isset($cache[$channel]) || $cache[$channel] + 3600 < time()) {
+			$notify_live[] = $channel;
+		}
 
-    if (isset($matches[1])) {
-        echo ' live' . PHP_EOL;
-    
-        $json = json_decode($matches[1], true);
-
-        if (!isset($cache[$channel]['uploadDate']) || $cache[$channel]['uploadDate'] != $json[0]['uploadDate']) {
-            if (!isset($cache[$channel]['time']) || $cache[$channel]['time'] + 3600 != time()) {
-                $live[] = $channel;
-            }
-
-            $cache[$channel] = [
-                'time' => time(),
-                'uploadDate' => $json[0]['uploadDate']
-            ];
-        }
-    } else {
-        echo ' off' . PHP_EOL;
-    }
-
-    usleep(500000);
+		$cache[$channel] = $started_at;
+	}
 }
 
-if ($cache != $cacheprev) {
-    file_put_contents($cachefile, json_encode($cache));
+$saveCache($cache);
+
+if (count($live) > 0) {
+	echo 'Live channel(s): ' . implode(', ', array_keys($live)) . PHP_EOL;
 }
 
-if (!empty($live) && isset($config['command'])) {
+if (!empty($notify_live) && isset($config['command'])) {
     echo 'Sending notification...' . PHP_EOL;
     
     $text = 'Live channel(s):' . PHP_EOL;
 
-    foreach ($live as $channel) {
+    foreach ($notify_live as $channel) {
         $text .= '- https://www.twitch.tv/' . $channel . PHP_EOL;
     }
 
@@ -96,15 +152,15 @@ if (!empty($live) && isset($config['command'])) {
             $config['command']
         )
     );
-
+	
     if (isset($config['debug'])) {
         echo $command . PHP_EOL;
     }
 
     if (stripos(PHP_OS, 'WIN') !== 0) {
-    
         system($command);
     } else {
-        throw new RuntimeException('Unable to run command through system() - unsupported OS!');
+        echo 'Unable to run command through system() - unsupported OS!';
+		exit(1);
     }
 }
