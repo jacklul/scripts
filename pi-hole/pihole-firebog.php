@@ -88,11 +88,15 @@ foreach ($types as $type) {
                         preg_match('/^# Updated .* from (.*)$/m', $list_data, $matches);
 
                         if (isset($matches[1])) {
-                            $cache[$line] = [
-                                'url' => $matches[1],
-                                'date' => $time,
-                            ];
-                            $line = $matches[1];
+                            $extension = pathinfo($matches[1], PATHINFO_EXTENSION);
+
+                            if (empty($extension) || in_array($extension, ['txt'])) {
+                                $cache[$line] = [
+                                    'url' => $matches[1],
+                                    'date' => $time,
+                                ];
+                                $line = $matches[1];
+                            }
                         }
                     } else {
                         fail('Unable to fetch ' . $line, false);
