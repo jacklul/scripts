@@ -28,7 +28,7 @@ OLDSTATE=$(cat "$STATEFILE")
 CURRENT=$(pihole -v -c | awk '{print $5}' | sed 's/\.$//g')
 STATE=$(pihole -v -l | awk '{print $5}')
 
-{ echo "$STATE" | grep -q "Invalid Option\|\-v\|N\/A"; } && { echo 'Invalid output - unable to parse'; exit 1; }
+{ echo "$STATE" | grep -q "Invalid Option\|\-v\|N\/A\|null"; } && { echo 'Invalid output - unable to parse'; exit 1; }
 
 if [ "$OLDSTATE" != "$STATE" ]; then
 	if [ "$CURRENT" != "$STATE" ]; then
