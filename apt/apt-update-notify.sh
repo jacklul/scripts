@@ -45,7 +45,7 @@ if [ "$1" == "postdpkg" ]; then
 		[ "$ALLUPDATED" == "true" ] && echo "" > "$STATEFILE"
 	fi
 
-	exit
+	exit 0
 fi
 
 OLDSTATE=$(cat "$STATEFILE")
