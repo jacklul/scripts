@@ -14,11 +14,16 @@ CONF_BASE="/etc/lighttpd/conf-available/15-pihole-admin.conf"
 CONF_NEW="/etc/lighttpd/conf-available/15-pihole-admin-nofastcgi.conf"
 
 if [ "$UID" -eq 0 ] && [ ! -f "/etc/lighttpd/conf-enabled/$(basename "$CONF_NEW")" ]; then
-    echo "# Remove fastcgi.server directive from $(basename "$CONF_BASE")" > "$CONF_NEW"
-    echo "include_shell \"$(readlink -f "$0")\"" >> "$CONF_NEW"
+	echo "# Remove fastcgi.server directive from $(basename "$CONF_BASE")" > "$CONF_NEW"
+	echo "include_shell \"$(readlink -f "$0")\"" >> "$CONF_NEW"
 
-    lighty-disable-mod pihole-admin > /dev/null
-    lighty-enable-mod pihole-admin-nofastcgi > /dev/null
+	lighty-disable-mod pihole-admin > /dev/null
+	lighty-enable-mod pihole-admin-nofastcgi > /dev/null
+fi
+
+if [ -f "/etc/lighttpd/conf-enabled/$(basename "$CONF_BASE")" ]; then
+	echo "# Base config is enabled ($CONF_BASE) - unable to use modified config!"
+	exit
 fi
 
 CONF_DATA="$(cat "$CONF_BASE")"
