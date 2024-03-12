@@ -358,7 +358,8 @@ final class showRSS
                 mkdir(dirname($config['cache']['cache_file']), 0755, true);
             }
         } else {
-            $this->cache_file = dirname($config['config_file']) . DIRECTORY_SEPARATOR . str_replace('-', '_', pathinfo($config['config_file'], PATHINFO_FILENAME)) . '_data.json';
+            //$this->cache_file = dirname($config['config_file']) . DIRECTORY_SEPARATOR . str_replace('-', '_', pathinfo($config['config_file'], PATHINFO_FILENAME)) . '_data.json';
+            $this->cache_file = $_SERVER['HOME'] . DIRECTORY_SEPARATOR . '.local' . DIRECTORY_SEPARATOR . 'share' . DIRECTORY_SEPARATOR . pathinfo($config['config_file'])['filename'] . '.json';
         }
 
         if (isset($config['notification']['command'])) {

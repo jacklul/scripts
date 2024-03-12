@@ -8,11 +8,22 @@ if (isset($argv[1]) && file_exists($argv[1])) {
     $configfile = realpath($argv[1]);
     $config = parse_ini_file($argv[1], true, INI_SCANNER_TYPED);
 } else {
-    $default_configfile = $_SERVER['HOME'] . '/.config/twitch-live-notify/twitch-live-notify.conf';
+	if (isset($_SERVER['HOME'])) {
+		$config_locations = [
+			__DIR__ . '/twitch-live-notify.conf',
+			$_SERVER['HOME'] . '/.config/twitch-live-notify/twitch-live-notify.conf',
+			$_SERVER['HOME'] . '/.config/twitch-live-notify.conf',
+		];
 
-    if (file_exists($default_configfile)) {
-        $configfile = realpath($default_configfile);
-        $config = parse_ini_file($default_configfile, true, INI_SCANNER_TYPED);
+		foreach ($config_locations as $configfile) {
+			if (file_exists($configfile)) {
+				break;
+			}
+		}
+	}
+
+    if (!empty($configfile) && file_exists($configfile)) {
+        $config = parse_ini_file($configfile, true, INI_SCANNER_TYPED);
     } else {
         echo 'Config file not found' . PHP_EOL;
         exit(1);
@@ -29,8 +40,7 @@ if (!empty($config['channels'])) {
     $channels = preg_split('/\s+|,/', strtolower($config['channels']));
 }
 
-$cachefile = pathinfo($configfile);
-$cachefile = $cachefile['dirname'] . '/' . $cachefile['filename'] . '.json';
+$cachefile = $_SERVER['HOME'] . '/.local/share/' . pathinfo($configfile)['filename'] . '.json';
 
 $cache = $cacheprev = [];
 if (file_exists($cachefile)) {
@@ -47,7 +57,7 @@ $saveCache = function(array $cache) use ($cachefile, $cacheprev, $config): ?bool
 
 		return file_put_contents($cachefile, json_encode($cache));
 	}
-	
+
 	return null;
 };
 
@@ -63,10 +73,10 @@ $authorize = function() use ($config, &$cache, $saveCache): void {
 
 	if (strpos($data, 'access_token') !== false) {
 		$auth_json = json_decode($data, true);
-		
+
 		$cache['__access_token'] = $auth_json['access_token'];
 		$cache['__access_token_expires'] = time() + $auth_json['expires_in'] - 60;
-		
+
 		$saveCache($cache);
 	} else {
 		exit(1);
@@ -89,30 +99,30 @@ $getLiveChannels = function() use ($access_token, $channels, $config): ?array {
 			$channel = trim($channel);
 			$query .= 'user_login=' . $channel;
 		}
-	
+
 		$data = file_get_contents('https://api.twitch.tv/helix/streams?' . $query, false, stream_context_create([
 			'http' => [
 				'method'  => 'GET',
 				'header' => 'Authorization: Bearer ' . $access_token . PHP_EOL . 'Client-Id: ' . $config['client_id']
 			]
 		]));
-		
+
 		if (empty($data) && strpos(error_get_last()['message'], '401 Unauthorized') !== false) {
 			if ($retry) {
 				return null;
 			}
-			
+
 			$retry = true;
 			continue;
 		}
-		
+
 		$json = json_decode($data, true);
-		
+
 		$live = [];
 		foreach ($json['data'] as $stream) {
 			$live[$stream['user_login']] = $stream['started_at'];
 		}
-		
+
 		return $live;
 	} while ($retry);
 };
@@ -138,7 +148,7 @@ if (count($live) > 0) {
 
 if (!empty($notify_live) && isset($config['command'])) {
     echo 'Sending notification...' . PHP_EOL;
-    
+
     $text = 'Live channel(s):' . PHP_EOL;
 
     foreach ($notify_live as $channel) {
@@ -152,7 +162,7 @@ if (!empty($notify_live) && isset($config['command'])) {
             $config['command']
         )
     );
-	
+
     if (isset($config['debug'])) {
         echo $command . PHP_EOL;
     }

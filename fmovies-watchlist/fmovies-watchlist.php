@@ -618,9 +618,9 @@ final class FMoviesNotify
             if (!is_dir(dirname($config['fmovies']['data_file']))) {
                 mkdir(dirname($config['fmovies']['data_file']), 0750, true);
             }
-        } else {
-            $config['fmovies']['data_file'] = dirname($config_file) . DIRECTORY_SEPARATOR . str_replace('-', '_', pathinfo($config_file, PATHINFO_FILENAME)) . '_data.json';
-        }
+        }/* else {
+            $config['fmovies']['data_file'] = dirname($config_file) . DIRECTORY_SEPARATOR . str_replace('-', '_', pathinfo($config_file, PATHINFO_FILENAME)) . '.json';
+        }*/
 
         $defaults = [
             'notification' => [
@@ -633,7 +633,7 @@ final class FMoviesNotify
                 'endpoint'     => $this->endpoint,
                 'username'     => null,
                 'password'     => null,
-                'data_file'    => dirname($config_file) . DIRECTORY_SEPARATOR . 'fmovies_watchlist_data.json',
+                'data_file'    => $_SERVER['HOME'] . DIRECTORY_SEPARATOR . '.local' . DIRECTORY_SEPARATOR . 'share' . DIRECTORY_SEPARATOR . pathinfo($config_file)['filename'] . '.json',
                 'format_tv'    => '#TITLE# #SEASON#x#EPISODEP# #QUALITY#',
                 'format_movie' => '#TITLE# #QUALITY#',
                 'quality'      => 'HD',

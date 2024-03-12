@@ -1,5 +1,7 @@
 # fmovies-watchlist
 
+### WARNING: THIS SCRIPT NO LONGER WORKS AS THEY ADDED LOGIN CAPTCHA TO THE SITE AND CHANGED SITE LAYOUT.
+
 This script checks [fmovies.to](https://fmovies.to/) watchlist for new releases of specified quality.
 
 It uses [telegram-notify](/telegram-notify/) script to send the notifications to the configured Telegram chat.

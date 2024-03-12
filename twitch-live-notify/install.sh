@@ -37,9 +37,8 @@ mkdir -pv ~/.config/systemd/user/
 cp -v "$SPATH/twitch-live-notify.service" ~/.config/systemd/user/ && chmod 644 ~/.config/systemd/user/twitch-live-notify.service
 cp -v "$SPATH/twitch-live-notify.timer" ~/.config/systemd/user/ && chmod 644 ~/.config/systemd/user/twitch-live-notify.timer
 
-if [ ! -f "/home/$USER/.config/twitch-live-notify/twitch-live-notify.conf" ] && [ -f "$SPATH/twitch-live-notify.conf.example" ]; then
-    mkdir -p "/home/$USER/.config/twitch-live-notify"
-	cp -v "$SPATH/twitch-live-notify.conf.example" "/home/$USER/.config/twitch-live-notify/twitch-live-notify.conf"
+if [ ! -f "/home/$USER/.config/twitch-live-notify.conf" ] && [ -f "$SPATH/twitch-live-notify.conf.example" ]; then
+	cp -v "$SPATH/twitch-live-notify.conf.example" "/home/$USER/.config/twitch-live-notify.conf"
 fi
 
 command -v dos2unix >/dev/null 2>&1 && dos2unix ~/.local/bin/twitch-live-notify
