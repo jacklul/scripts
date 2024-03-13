@@ -10,7 +10,7 @@ VERSION_CHECK_INTERVAL=720
 VERSION_CHECK_LOCAL=$(head -n 100 < "${0}" | sed -n "/Revision history/,/# --/p" | head -n-1 | tail -n+2 | tail -1 | awk '{print $3}')
 VERSION_CHECK_LATEST=$([ -f "${VERSION_CHECK_CACHE}" ] && cat ${VERSION_CHECK_CACHE} || echo "${VERSION_CHECK_LOCAL}")
 
-if [ ! -f "${VERSION_CHECK_CACHE}" ] || [[ $(find "${VERSION_CHECK_CACHE}" -mmin +${VERSION_CHECK_INTERVAL} -print) ]]; then
+if [ ! -f "${VERSION_CHECK_CACHE}" ] || { [ -w "${VERSION_CHECK_CACHE}" ] && [[ $(find "${VERSION_CHECK_CACHE}" -mmin +${VERSION_CHECK_INTERVAL} -print) ]] ; }; then
     [ "${QUIET}" = "false" ] && echo "[Info] Checking for telegram-notify update..."
 
     VERSION_CHECK_REMOTE_SCRIPT=$(wget -q -T 10 -O - "${VERSION_CHECK_URL}")
@@ -26,7 +26,7 @@ fi
 if [ "${TEXT}" != "" ] && [ -f "${VERSION_CHECK_CACHE}" ]; then
     VERSION_CHECK_LATEST=$(cat ${VERSION_CHECK_CACHE})
 
-	if [ "$(echo -e "${VERSION_CHECK_LOCAL}\n${VERSION_CHECK_LATEST}" | sort -r | head -1)" != "${VERSION_CHECK_LOCAL}" ]; then
+    if [ "$(echo -e "${VERSION_CHECK_LOCAL}\n${VERSION_CHECK_LATEST}" | sort -r | head -1)" != "${VERSION_CHECK_LOCAL}" ]; then
         [ "${QUIET}" = "false" ] && echo "[Info] New script version (${VERSION_CHECK_LATEST}) is available"
 
         if [ "${MODE}" = "html" ]; then
