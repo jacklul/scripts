@@ -56,7 +56,7 @@ if [ "$OLDSTATE" != "$STATE" ]; then
 		COUNT=$(echo "$STATE" | wc -l)
 		MESSAGE=$([ "$COUNT" -gt 1 ] && echo "There are $COUNT updates available:" || echo "There is 1 update available:")
 
-		/usr/local/bin/telegram-notify --quiet --warning --title "APT Updates @ $(hostname -f)" --text "*$MESSAGE*\n$STATE" --protect
+		/usr/local/bin/telegram-notify --quiet --warning --title "APT Updates @ $(hostname -s)" --text "*$MESSAGE*\n$STATE" --protect
 	fi
 
 	echo -e "$STATE" > "$STATEFILE"

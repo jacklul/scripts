@@ -4,7 +4,7 @@ NAME="Telegram"
 
 function notify() {
 	if systemctl is-active --quiet updatenotifier.service ; then
-		/usr/local/bin/telegram-notify --quiet --warning --title "Update Notifier @ $(hostname -f)" --text "$1" --protect
+		/usr/local/bin/telegram-notify --quiet --warning --title "Update Notifier @ $(hostname -s)" --text "$1" --protect
 
 		if [ $? != 0 ]; then
 			echo "There was a problem sending out the notification through Telegram"

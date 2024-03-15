@@ -36,7 +36,7 @@ if [ "$OLDSTATE" != "$STATE" ]; then
 		COUNT=$(echo "$PRINT" | wc -l)
 		MESSAGE=$([ "$COUNT" -gt 1 ] && echo "There are Pi-hole updates available:" || echo "There is Pi-hole update available:")
 
-		/usr/local/bin/telegram-notify --quiet --warning --title "Pi-hole Updates @ $(hostname -f)" --text "*$MESSAGE*\n$PRINT" --protect
+		/usr/local/bin/telegram-notify --quiet --warning --title "Pi-hole Updates @ $(hostname -s)" --text "*$MESSAGE*\n$PRINT" --protect
 	fi
 
 	echo -e "$STATE" > "$STATEFILE"
