@@ -1,4 +1,4 @@
 channels=""
 client_id=""
 client_secret=""
-command="/usr/local/bin/telegram-notify --quiet --html --disable_preview --icon 1F4FA --title \"Twitch Live notification @ $(hostname -f)\" --text \"#TEXT#\""
+command="/usr/local/bin/telegram-notify --quiet --html --disable_preview --icon 1F4FA --title \"Twitch Live notification\" --text \"#TEXT#\""
