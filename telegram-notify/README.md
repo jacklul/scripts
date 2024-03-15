@@ -2,7 +2,7 @@
 
 Allows sending text, document and photo messages to Telegram chats.
 Configured also to be used as a notification handler for systemd service failures.
-Will also inject update checker when installed through install script from this repository .
+Can also optionally inject update checker when installed through install script from this repository.
 
 **[Original script by Nicolas Bernaerts](https://github.com/NicolasBernaerts/debian-scripts/tree/master/telegram), this is just a fork with added functionality.**
 
@@ -22,6 +22,8 @@ OR
 
 - Copy this whole directory and transfer it to the device
 - Run `install.sh` as root
+
+Pass `alt` as an argument to the install script to also install update checker.
 
 ## Systemd service failure handler
 

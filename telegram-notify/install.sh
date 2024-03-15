@@ -4,35 +4,46 @@
 command -v curl >/dev/null 2>&1 || { echo "This script requires cURL to run!"; exit 1; }
 
 SPATH=$(dirname "$0")
-REQUIRED_FILES=( telegram-notify.sh telegram-notify@.service telegram-notify-updatecheck.sh )
+REQUIRED_FILES=( telegram-notify.sh telegram-notify@.service )
 DOWNLOAD_PATH=telegram-notify
-DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/master/telegram-notify
+DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/main/telegram-notify
 DOWNLOAD_URL_ORIGINAL=https://raw.githubusercontent.com/NicolasBernaerts/debian-scripts/master/telegram
+
+if [ "$1" = "alt" ]; then
+	REQUIRED_FILES+=('telegram-notify-updatecheck.sh')
+fi
 
 set -e
 
 MISSING_FILES=0
 for FILE in "${REQUIRED_FILES[@]}"; do
-    [ ! -f "$SPATH/$FILE" ] && MISSING_FILES=$((MISSING_FILES+1))
+	if [ ! -f "$SPATH/$FILE" ]; then
+		MISSING_FILES=$((MISSING_FILES+1))
+	fi
 done
 
 if [ "$MISSING_FILES" -gt 0 ]; then
-    if [ "$MISSING_FILES" != "${#MISSING_FILES[@]}" ]; then
-        mkdir -v "$SPATH/$DOWNLOAD_PATH"
-        SPATH="$SPATH/$DOWNLOAD_PATH"
-    fi
+	if [ "$MISSING_FILES" != "${#MISSING_FILES[@]}" ]; then
+		mkdir -v "$SPATH/$DOWNLOAD_PATH"
+		SPATH="$SPATH/$DOWNLOAD_PATH"
+	fi
 
-    for FILE in "${REQUIRED_FILES[@]}"; do
+	for FILE in "${REQUIRED_FILES[@]}"; do
 		if [ ! -f "$SPATH/$FILE" ]; then
-			[ "$FILE" = "telegram-notify.sh" ] && wget -nv -O "$SPATH/telegram-notify.sh" "$DOWNLOAD_URL_ORIGINAL/telegram-notify" && continue
-			
+			if [ "$FILE" = "telegram-notify.sh" ] &&  wget -nv -O "$SPATH/telegram-notify.sh" "$DOWNLOAD_URL_ORIGINAL/telegram-notify"; then
+				continue
+			fi
+
 			wget -nv -O "$SPATH/$FILE" "$DOWNLOAD_URL/$FILE"
 		fi
-    done
+	done
 fi
 
 for FILE in "${REQUIRED_FILES[@]}"; do
-    [ ! -f "$SPATH/$FILE" ] && { echo "Missing required file for installation: $FILE"; exit 1; }
+	if [ ! -f "$SPATH/$FILE" ]; then
+		echo "Missing required file for installation: $FILE"
+		exit 1
+	fi
 done
 
 cp -v "$SPATH/telegram-notify.sh" /usr/local/bin/telegram-notify && \
