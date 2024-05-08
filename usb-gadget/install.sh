@@ -4,7 +4,7 @@
 
 SPATH=$(dirname "$0")
 REQUIRED_FILES=( usb-gadget.sh usb-gadget.service usb-gadget.conf )
-DOWNLOAD_PATH=usb-gadget
+DOWNLOAD_PATH=/tmp/usb-gadget
 DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/master/usb-gadget
 
 set -e
@@ -15,9 +15,9 @@ for FILE in "${REQUIRED_FILES[@]}"; do
 done
 
 if [ "$MISSING_FILES" -gt 0 ]; then
-    if [ "$MISSING_FILES" != "${#MISSING_FILES[@]}" ]; then
-        mkdir -v "$SPATH/$DOWNLOAD_PATH"
-        SPATH="$SPATH/$DOWNLOAD_PATH"
+    if [ "$MISSING_FILES" = "${#REQUIRED_FILES[@]}" ]; then
+        mkdir -pv "$DOWNLOAD_PATH"
+        SPATH="$DOWNLOAD_PATH"
     fi
 
     for FILE in "${REQUIRED_FILES[@]}"; do

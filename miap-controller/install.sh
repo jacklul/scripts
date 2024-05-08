@@ -4,7 +4,7 @@ command -v php >/dev/null 2>&1 || { echo "Command 'php' not found!"; exit 1; }
 
 SPATH=$(dirname "$0")
 REQUIRED_FILES=( miap-controller.phar )
-DOWNLOAD_PATH=miap-controller
+DOWNLOAD_PATH=/tmp/miap-controller
 DOWNLOAD_URL=https://raw.githubusercontent.com/jacklul/scripts/master/miap-controller
 
 if [ "$UID" -eq 0 ]; then
@@ -21,9 +21,9 @@ for FILE in "${REQUIRED_FILES[@]}"; do
 done
 
 if [ "$MISSING_FILES" -gt 0 ]; then
-    if [ "$MISSING_FILES" != "${#MISSING_FILES[@]}" ]; then
-        mkdir -v "$SPATH/$DOWNLOAD_PATH"
-        SPATH="$SPATH/$DOWNLOAD_PATH"
+    if [ "$MISSING_FILES" = "${#REQUIRED_FILES[@]}" ]; then
+        mkdir -pv "$DOWNLOAD_PATH"
+        SPATH="$DOWNLOAD_PATH"
     fi
 
     for FILE in "${REQUIRED_FILES[@]}"; do
