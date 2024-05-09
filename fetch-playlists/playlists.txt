@@ -1,0 +1,11 @@
+# By language
+https://iptv-org.github.io/iptv/languages/pol.m3u;iptv-org.github.io/language;Polish.m3u
+https://iptv-org.github.io/iptv/languages/eng.m3u;iptv-org.github.io/language;English.m3u
+
+# By country
+https://iptv-org.github.io/iptv/countries/pl.m3u;iptv-org.github.io/country;Poland.m3u
+https://iptv-org.github.io/iptv/countries/cz.m3u;iptv-org.github.io/country;Czech Republic.m3u
+https://iptv-org.github.io/iptv/countries/de.m3u;iptv-org.github.io/country;Germany.m3u
+
+# By category
+https://iptv-org.github.io/iptv/categories/relax.m3u;iptv-org.github.io/category;Relax.m3u

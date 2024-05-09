@@ -1,0 +1,6 @@
+# No geo blocked
+[Geo-blocked];country/,category/
+
+# Exclude BloombergTV for selected playlists
+#BloombergTVEMEALiveEvent.uk;Poland.m3u,Polish.m3u,Czech Republic.m3u,Germany.m3u
+#BloombergTVEurope.uk;Poland.m3u,Polish.m3u,Czech Republic.m3u,Germany.m3u

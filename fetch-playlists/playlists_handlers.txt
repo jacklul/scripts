@@ -1,0 +1,1 @@
+\.mpd$;type=mpeg handler=http raw=true
