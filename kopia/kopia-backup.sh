@@ -1,47 +1,42 @@
 #!/usr/bin/env bash
-#shellcheck disable=SC2034,SC1091,SC2086
+#shellcheck disable=SC1091,SC2086
 
-KOPIA_CHECK_FOR_UPDATES=false
-KOPIA_BACKUP_PARALLEL=
-
-if [ -f "$HOME/.backup/config.conf" ]; then
-    source "$HOME/.backup/config.conf"
+if [ -f "$PWD/kopia-backup.conf" ]; then
+    source "$PWD/kopia-backup.conf"
+elif [ -f "$HOME/.backup/kopia-backup.conf" ]; then
+    source "$HOME/.backup/kopia-backup.conf"
 fi
+
+[ -z "$1" ] && { echo "Destination config not provided"; exit 1; }
+arg=$1
+shift
+
+kopia_confg_var="KOPIA_${arg^^}_CONFIG"
+kopia_confg="${!kopia_confg_var}"
+kopia_opts_var="KOPIA_${arg^^}_OPTS"
+kopia_opts="${!kopia_opts_var}"
 
 if [ -z "$1" ]; then
-    kopia --config-file="$KOPIA_BACKUP_CONFIG" repository status
-    echo
-    echo "Create backup using config '$KOPIA_BACKUP_CONFIG'"
-    [ -n "$KOPIA_BACKUP_PARALLEL" ] && echo "KOPIA_BACKUP_PARALLEL = $KOPIA_BACKUP_PARALLEL"
+    kopia --config-file="$kopia_confg" repository status
 
-    if [[ $- == *i* ]]; then
-        echo
-        read -r -n 1 -p "Begin backup [Y,N]?" -s answer
+    if [ -t 0 ]; then
+        echo; read -r -n 1 -p "Begin backup? [Y/N]: " answer; echo
         [[ $answer != [yY] ]] && exit 0
-        echo
     fi
 elif [ "$1" != "run" ]; then
-	echo "Using config file: $KOPIA_BACKUP_CONFIG"
-    kopia --config-file="$KOPIA_BACKUP_CONFIG" "$*"
-    exit $?
+    exec kopia --config-file="$kopia_confg" "$@"
 fi
 
-cp -f "$HOME/.config/kopia/$KOPIA_BACKUP_CONFIG" "$HOME/.backup/$KOPIA_BACKUP_CONFIG.bak"
-
-[ -n "$KOPIA_BACKUP_PARALLEL" ] && PARALLEL="--parallel=$KOPIA_BACKUP_PARALLEL"
-
-EXITCODE=-1
-while [ "$EXITCODE" -ne 0 ]; do
+exitcode=-1
+while [ "$exitcode" -ne 0 ]; do
     echo
-    kopia --config-file="$KOPIA_BACKUP_CONFIG" snapshot create --all $PARALLEL
-    EXITCODE=$?
+    kopia --config-file="$kopia_confg" snapshot create --all $kopia_opts
+    exitcode=$?
 
-    if [ "$EXITCODE" -ne 0 ] && [[ $- == *i* ]]; then
-        echo
-        read -r -n 1 -p "Command failed. Retry [Y,N]?" -s answer
-        [[ $answer != [yY] ]] && exit $EXITCODE
-        echo
-    else
-        exit $EXITCODE
+    if [ "$exitcode" -ne 0 ] && [ -t 0 ]; then
+        echo; read -r -n 1 -p "Backup command failed. Retry? [Y/N]: " answer; echo
+        [[ $answer == [yY] ]] && continue
     fi
+
+    exit $exitcode
 done

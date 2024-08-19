@@ -1,8 +1,5 @@
 @echo off
-setlocal
-
-set KOPIA_CHECK_FOR_UPDATES=false
-set KOPIA_BACKUP_PARALLEL=
+setlocal EnableDelayedExpansion
 
 set interactive=false
 mode con >nul 2>&1
@@ -10,45 +7,49 @@ if %errorlevel%==0 (
     set interactive=true
 )
 
-:start
-if exist "%~dp0config.conf" (
-	for /F "delims= eol=#" %%A in (%~dp0config.conf) do set "%%A"
+if exist "%~dp0kopia-backup.conf" (
+	for /F "delims= eol=#" %%A in (%~dp0kopia-backup.conf) do set "%%A"
+) else if exist "%USERPROFILE%/.backup/kopia-backup.conf" (
+	for /F "delims= eol=#" %%A in (%USERPROFILE%/.backup/kopia-backup.conf) do set "%%A"
 )
 
-if [%1] == [] (
-	kopia --config-file="%KOPIA_BACKUP_CONFIG%" repository status
-    echo.
-	echo Create backup using config '%KOPIA_BACKUP_CONFIG%'
+if "%~1"=="" (
+    echo Destination config not provided
+    exit /b 1
+)
 
-    if not [%KOPIA_BACKUP_PARALLEL%] == [] (
-	    echo KOPIA_BACKUP_PARALLEL ^= %KOPIA_BACKUP_PARALLEL%
-    )
+set arg=%1
+set arg_upper=
+set "args=%*"
+set "args=!args:*%1 =!"
+for /f "usebackq delims=" %%I in (`powershell "\"%arg%\".toUpper()"`) do set "arg_upper=%%~I"
+if "%arg%" == "%args%" (
+   set args=
+)
 
-	if /I "%interactive%"=="true" (
+set "kopia_config=!KOPIA_%arg_upper%_CONFIG!"
+set "kopia_opts=!KOPIA_%arg_upper%_OPTS!"
+
+if [%args%] == [] (
+	kopia --config-file="%kopia_config%" repository status
+
+	if /I "%interactive%" == "true" (
 		echo.
 		choice /C YN /M "Begin backup "
 		if errorlevel 2 goto :eof
 	)
-) else if not "%1"=="run" (
-	echo Using config file: %KOPIA_BACKUP_CONFIG%
-	kopia --config-file="%KOPIA_BACKUP_CONFIG%" %*
+) else if not "%args%" == "run" (
+	kopia --config-file="%kopia_config%" %args%
 	exit /B %ERRORLEVEL%
-)
-
-copy /Y "%APPDATA%\kopia\%KOPIA_BACKUP_CONFIG%" "%~dp0%KOPIA_BACKUP_CONFIG%.bak" >nul
-
-if not [%KOPIA_BACKUP_PARALLEL%] == [] (
-    set PARALLEL="--parallel=%KOPIA_BACKUP_PARALLEL%"
 )
 
 :retry
 echo.
-kopia --config-file="%KOPIA_BACKUP_CONFIG%" snapshot create --all %PARALLEL%
-set EXITCODE=%ERRORLEVEL%
+kopia --config-file="%kopia_config%" snapshot create --all %kopia_opts%
+set exitcode=%ERRORLEVEL%
 
-if not "%EXITCODE%"=="0" (
-	if /I "%interactive%"=="true" (
-		rundll32 user32.dll,MessageBeep
+if not "%exitcode%" == "0" (
+	if /I "%interactive%" == "true" (
         echo.
 		choice /C YN /M "Command failed. Retry "
 		if errorlevel 2 goto end
@@ -57,4 +58,4 @@ if not "%EXITCODE%"=="0" (
 )
 
 :end
-exit /B %EXITCODE%
+exit /B %exitcode%
