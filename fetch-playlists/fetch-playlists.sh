@@ -9,6 +9,8 @@
 #  https://gist.github.com/WolfganP/19da4d736237c86e0c50637b1d124aaa#playlist-structure
 #
 #
+# Configuration directory: /etc/fetch-playlists/
+#
 # Sample playlists.txt:
 # --------------------------------------
 # https://iptv-org.github.io/iptv/languages/eng.m3u;iptv-org.github.io/languages
@@ -56,11 +58,12 @@
 
 readonly SCRIPT_PATH="$(readlink -f "$0")"
 readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_CONFIG="$SCRIPT_PATH/playlists.conf"
+readonly SCRIPT_CONFIG_DIR="/etc/fetch-playlists"
+readonly SCRIPT_CONFIG="$SCRIPT_CONFIG_DIR/playlists.conf"
 
-PLAYLISTS_FILE="$SCRIPT_PATH/playlists.txt"
-EXCLUDE_FILE="$SCRIPT_PATH/playlists_exclude.txt"
-HANDLERS_FILE="$SCRIPT_PATH/playlists_handlers.txt"
+PLAYLISTS_FILE="$SCRIPT_CONFIG_DIR/playlists.txt"
+EXCLUDE_FILE="$SCRIPT_CONFIG_DIR/playlists_exclude.txt"
+HANDLERS_FILE="$SCRIPT_CONFIG_DIR/playlists_handlers.txt"
 XUPNPD2_CONFIG_FILE="/etc/xupnpd2/xupnpd2.cfg"
 MEDIA_ROOT=
 RESCAN_URL=
@@ -270,6 +273,8 @@ if [ -f "$PLAYLISTS_FILE" ]; then
 
         curl -fsL "$RESCAN_URL" > /dev/null
     fi
+    
+    echo "Finished"
 else
     logprint "Playlists file not found: $PLAYLISTS_FILE"
     exit 1
