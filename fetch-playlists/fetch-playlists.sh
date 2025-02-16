@@ -83,16 +83,6 @@ elif [ -f "$SCRIPT_CONFIG" ]; then # load default config
     . "$SCRIPT_CONFIG"
 fi
 
-IS_INTERACTIVE=$([ "$(readlink -f /proc/$$/fd/0)" = "/dev/null" ] && echo false || echo true)
-
-logprint() {
-    if [ "$IS_INTERACTIVE" = false ]; then
-        logger -st "$SCRIPT_NAME" "$1"
-    else
-        echo "$1"
-    fi
-}
-
 if [ -f "$XUPNPD2_CONFIG_FILE" ]; then
     HTTP_PORT="$(grep http_port < "$XUPNPD2_CONFIG_FILE" | cut -d '=' -f 2)"
     MEDIA_ROOT="$(grep media_root < "$XUPNPD2_CONFIG_FILE" | cut -d '=' -f 2)"
@@ -102,18 +92,18 @@ if [ -f "$XUPNPD2_CONFIG_FILE" ]; then
     fi
 fi
 
-[ -z "$MEDIA_ROOT" ] && { logprint "Media root directory is not set"; exit 1; }
+[ -z "$MEDIA_ROOT" ] && { echo "Media root directory is not set"; exit 1; }
 
 if [ -f "$PLAYLISTS_FILE" ]; then
     if [ "$FORCE_HTTP" = "true" ] && [ "$FORCE_HTTPS" = "true" ]; then
-        logprint "You can only use either FORCE_HTTP or FORCE_HTTPS"
+        echo "You can only use either FORCE_HTTP or FORCE_HTTPS"
         exit 1
     fi
 
     DOWNLOAD_START="$(date "+%Y-%m-%d %H:%M")"
 
     if [ "$CLEANUP" = true ] && [ -d "$MEDIA_ROOT" ]; then
-        logprint "Cleaning up media directory..."
+        echo "Cleaning up media directory..."
 
         #shellcheck disable=SC2115
         rm -fr "$MEDIA_ROOT"/*
@@ -121,7 +111,7 @@ if [ -f "$PLAYLISTS_FILE" ]; then
 
     [ ! -d "$MEDIA_ROOT" ] && mkdir -vp "$MEDIA_ROOT"
 
-    logprint "Downloading playlists..."
+    echo "Downloading playlists..."
 
     while IFS="" read -r PLAYLIST || [ -n "$PLAYLIST" ]; do
         [ "$(echo "$PLAYLIST" | cut -c1-1)" = "#" ] && continue
@@ -160,12 +150,12 @@ if [ -f "$PLAYLISTS_FILE" ]; then
             mv -f "/tmp/$BASENAME" "$DESTINATION"
             [ "$CREATE_DIFFS" = true ] && cp "$DESTINATION" "$DESTINATION.tmp"
         else
-            logprint "Failed to download: $PLAYLIST"
+            echo "Failed to download: $PLAYLIST"
         fi
     done < "$PLAYLISTS_FILE"
 
     if [ "$REMOVE_USELESS" = true ]; then
-        logprint "Removing useless lines..."
+        echo "Removing useless lines..."
 
         find "$MEDIA_ROOT" -type f \( -name "*.m3u" -o -name "*.m3u8" \) -newermt "$DOWNLOAD_START" | while read -r FILE; do
             echo "Processing file $FILE..."
@@ -174,7 +164,7 @@ if [ -f "$PLAYLISTS_FILE" ]; then
     fi
 
     if [ -f "$EXCLUDE_FILE" ]; then
-        logprint "Removing excluded entries..."
+        echo "Removing excluded entries..."
 
         find "$MEDIA_ROOT" -type f \( -name "*.m3u" -o -name "*.m3u8" \) -newermt "$DOWNLOAD_START" | while read -r FILE; do
             echo "Processing file $FILE..."
@@ -219,7 +209,7 @@ if [ -f "$PLAYLISTS_FILE" ]; then
     fi
 
     if [ -f "$HANDLERS_FILE" ]; then
-        logprint "Inserting handlers..."
+        echo "Inserting handlers..."
 
         find "$MEDIA_ROOT" -type f \( -name "*.m3u" -o -name "*.m3u8" \) -newermt "$DOWNLOAD_START" | while read -r FILE; do
             echo "Processing file $FILE..."
@@ -242,7 +232,7 @@ if [ -f "$PLAYLISTS_FILE" ]; then
     fi
 
     if [ -n "$DEFAULT_HANDLER" ]; then
-        logprint "Setting default handler..."
+        echo "Setting default handler..."
 
         find "$MEDIA_ROOT" -type f \( -name "*.m3u" -o -name "*.m3u8" \) -newermt "$DOWNLOAD_START" | while read -r FILE; do
             echo "Processing file $FILE..."
@@ -269,13 +259,13 @@ if [ -f "$PLAYLISTS_FILE" ]; then
     fi
 
     if [ -n "$RESCAN_URL" ]; then
-        logprint "Forcing media rescan..."
+        echo "Forcing media rescan..."
 
         curl -fsL "$RESCAN_URL" > /dev/null
     fi
     
     echo "Finished"
 else
-    logprint "Playlists file not found: $PLAYLISTS_FILE"
+    echo "Playlists file not found: $PLAYLISTS_FILE"
     exit 1
 fi
