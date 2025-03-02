@@ -263,7 +263,7 @@ if [ -f "$PLAYLISTS_FILE" ]; then
 
         curl -fsL "$RESCAN_URL" > /dev/null
     fi
-    
+
     echo "Finished"
 else
     echo "Playlists file not found: $PLAYLISTS_FILE"
