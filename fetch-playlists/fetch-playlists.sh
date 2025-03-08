@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Fetch playlists for use with xupnpd2
 #
@@ -54,26 +54,31 @@
 # then you have to set "MEDIA_ROOT" variable in the configuration
 #
 
-#shellcheck disable=SC2155
+#shellcheck disable=SC2155,SC2001
 
-readonly SCRIPT_PATH="$(readlink -f "$0")"
-readonly SCRIPT_NAME="$(basename "$SCRIPT_PATH" .sh)"
-readonly SCRIPT_CONFIG_DIR="/etc/fetch-playlists"
+# Support Entware out of the box
+if [ -d "/opt/etc/opkg.conf" ]; then
+    readonly ETC_DIR="/opt/etc"
+else
+    readonly ETC_DIR="/etc"
+fi
+
+readonly SCRIPT_CONFIG_DIR="$ETC_DIR/fetch-playlists"
 readonly SCRIPT_CONFIG="$SCRIPT_CONFIG_DIR/playlists.conf"
 
 PLAYLISTS_FILE="$SCRIPT_CONFIG_DIR/playlists.txt"
 EXCLUDE_FILE="$SCRIPT_CONFIG_DIR/playlists_exclude.txt"
 HANDLERS_FILE="$SCRIPT_CONFIG_DIR/playlists_handlers.txt"
-XUPNPD2_CONFIG_FILE="/etc/xupnpd2/xupnpd2.cfg"
-MEDIA_ROOT=
-RESCAN_URL=
-CLEANUP=false
-REMOVE_USELESS=true
-DEFAULT_HANDLER=
-NO_REMOVE=false
-CREATE_DIFFS=false
-FORCE_HTTP=false
-FORCE_HTTPS=false
+XUPNPD2_CONFIG_FILE="$ETC_DIR/xupnpd2/xupnpd.cfg"
+MEDIA_ROOT=  # directory where to download playlists, it doesn't have to be xupnpd's media root
+RESCAN_URL=  # url to visit to trigger rescan
+CLEANUP=false  # delete contents of MEDIA_ROOT before running
+REMOVE_USELESS=true  # cleanup playlists files by removing useless meta lines
+DEFAULT_HANDLER=  # override defaults handler
+NO_REMOVE=false  # make exclusions not remove entires
+CREATE_DIFFS=false  # create diff files to see what this script did
+FORCE_HTTP=false  # force all urls in playlists to use http://
+FORCE_HTTPS=false  # force all urls in playlists to use https://
 
 if [ -n "$1" ] && [ -f "$1" ]; then # load config from the argument
     #shellcheck disable=SC1090
@@ -84,19 +89,24 @@ elif [ -f "$SCRIPT_CONFIG" ]; then # load default config
 fi
 
 if [ -f "$XUPNPD2_CONFIG_FILE" ]; then
-    HTTP_PORT="$(grep http_port < "$XUPNPD2_CONFIG_FILE" | cut -d '=' -f 2)"
-    MEDIA_ROOT="$(grep media_root < "$XUPNPD2_CONFIG_FILE" | cut -d '=' -f 2)"
+    if [ -z "$MEDIA_ROOT" ]; then
+        MEDIA_ROOT="$(grep media_root < "$XUPNPD2_CONFIG_FILE" | cut -d '=' -f 2)"
+    fi
 
-    if [ -z "$RESCAN_URL" ] && [ -n "$HTTP_PORT" ]; then
-        RESCAN_URL="http://127.0.0.1:$HTTP_PORT/scripts/scan.lua"
+    if [ -z "$RESCAN_URL" ]; then
+        HTTP_PORT="$(grep http_port < "$XUPNPD2_CONFIG_FILE" | cut -d '=' -f 2)"
+
+        if [ -n "$HTTP_PORT" ]; then
+            RESCAN_URL="http://127.0.0.1:$HTTP_PORT/scripts/scan.lua"
+        fi
     fi
 fi
 
-[ -z "$MEDIA_ROOT" ] && { echo "Media root directory is not set"; exit 1; }
+[ -z "$MEDIA_ROOT" ] && { echo "Media root directory is not set" >&2; exit 1; }
 
 if [ -f "$PLAYLISTS_FILE" ]; then
     if [ "$FORCE_HTTP" = "true" ] && [ "$FORCE_HTTPS" = "true" ]; then
-        echo "You can only use either FORCE_HTTP or FORCE_HTTPS"
+        echo "You can only use either FORCE_HTTP or FORCE_HTTPS" >&2
         exit 1
     fi
 
@@ -106,7 +116,7 @@ if [ -f "$PLAYLISTS_FILE" ]; then
         echo "Cleaning up media directory..."
 
         #shellcheck disable=SC2115
-        rm -fr "$MEDIA_ROOT"/*
+        rm -fr "${MEDIA_ROOT:?}"/*
     fi
 
     [ ! -d "$MEDIA_ROOT" ] && mkdir -vp "$MEDIA_ROOT"
@@ -266,6 +276,6 @@ if [ -f "$PLAYLISTS_FILE" ]; then
 
     echo "Finished"
 else
-    echo "Playlists file not found: $PLAYLISTS_FILE"
+    echo "Playlists file not found: $PLAYLISTS_FILE" >&2
     exit 1
 fi
