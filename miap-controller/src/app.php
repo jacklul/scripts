@@ -405,7 +405,7 @@ final class MIAPController
         $lastStatsClean = !empty($this->config['DBMAXDAYS']) ? 0 : null;
         while (true) {
             if ($this->device === null) {
-                $this->connect($this->model !== null);
+                $this->connect($this->model !== null, $this->command !== null);
             } else {
                 sleep($this->config['POLLING_PERIOD']);
             }
@@ -543,7 +543,7 @@ final class MIAPController
     /**
      * @return void
      */
-    private function connect(bool $reconnect = false): void
+    private function connect(bool $reconnect = false, bool $once = false): void
     {
         // Initialize AirPurifier object
         $this->socket = (new SocketFactory())->createUdp4();
@@ -585,6 +585,12 @@ final class MIAPController
             }
 
             if (!$status) {
+                if ($once) {
+                    $this->printAndLog('Failed to connect to the device', 'ERROR');
+                    $this->disconnect();
+                    exit(1);
+                }
+
                 $this->config['QUIET'] === false && $this->printAndLog('Will retry in ' . $this->config['CONNECT_RETRY'] . ' seconds...');
                 sleep((int)$this->config['CONNECT_RETRY']);
             }
