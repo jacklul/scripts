@@ -7,7 +7,7 @@ Extremely simple script to set up Raspberry Pi Zero (and possibly others) as a U
 ## Requirements
 
 - systemd
-- `dtoverlay=dwc2` in /boot/config.tx
+- `dtoverlay=dwc2` in /boot/config.txt
 - `modules-load=dwc2` in /boot/cmdline.txt
 
 ## Installation

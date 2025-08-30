@@ -223,7 +223,7 @@ usb_gadget_up() {
 
         echo "Bringing network interface \"$IDENT\" up..."
 
-        ifconfig "$IDENT" up
+        ip link set "$IDENT" up
     fi
 
     if [ "$ADD_ECM" = true ] && [ -f "$PATHDIR/functions/ecm.$INSTANCE/ifname" ]; then
@@ -231,7 +231,7 @@ usb_gadget_up() {
 
         echo "Bringing network interface \"$IDENT\" up..."
 
-        ifconfig "$IDENT" up
+        ip link set "$IDENT" up
     fi
 
     if [ "$ADD_SERIAL" = true ] && [ -f "$PATHDIR/functions/acm.$INSTANCE/port_num" ] && systemctl is-system-running --quiet; then
@@ -269,7 +269,7 @@ usb_gadget_down() {
             if [ -d "/sys/class/net/$IDENT" ]; then
                 echo "Bringing network interface \"$IDENT\" down..."
 
-                ifconfig "$IDENT" down
+                ip link set "$IDENT" down
             fi
         fi
 
@@ -279,7 +279,7 @@ usb_gadget_down() {
             if [ -d "/sys/class/net/$IDENT" ]; then
                 echo "Bringing network interface \"$IDENT\" down..."
 
-                ifconfig "$IDENT" down
+                ip link set "$IDENT" down
             fi
         fi
 

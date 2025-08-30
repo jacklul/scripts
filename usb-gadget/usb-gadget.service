@@ -1,6 +1,5 @@
 [Unit]
 Description=USB Gadget
-ConditionPathIsDirectory=/sys/kernel/config/usb_gadget
 After=systemd-modules-load.service
 
 [Service]
